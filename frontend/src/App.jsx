@@ -228,6 +228,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
+import {
+  User, CreditCard, Phone, Calendar, DollarSign, FileText, Users, CheckCircle, XCircle, Banknote, ClipboardList
+} from 'lucide-react'; // Importing icons
+
 
 // Base URL for your API
 const API_URL = 'http://localhost:5000/api';
@@ -313,11 +317,13 @@ const App = () => {
    * @param {string} userId - The ID of the user for whom installments are to be generated.
    * Refreshes the installments list after successful generation.
    */
-  const generateInstallments = async (userId) => {
+  const generateInstallments = async () => { // Removed userId parameter, now uses selectedUser._id
+    if (!selectedUser) return; // Ensure a user is selected
+
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/installments/generate/${userId}`);
-      await fetchInstallments(userId); // Refresh installments after generation
+      await axios.post(`${API_URL}/installments/generate/${selectedUser._id}`);
+      await fetchInstallments(selectedUser._id); // Refresh installments after generation
       showSnackbar('Installments generated successfully', 'success');
     } catch (error) {
       console.error('Error generating installments:', error);
@@ -448,16 +454,16 @@ const App = () => {
 
   return (
     // Main container with gradient background and responsive padding
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 text-gray-900 p-4 font-sans antialiased">
+     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-200 text-gray-800 p-4 font-sans antialiased">
       <div className="container mx-auto p-4">
         {/* Application Title */}
-        <h1 className="text-4xl font-extrabold text-center mb-8 text-blue-800 tracking-wide">
+        <h1 className="text-4xl font-extrabold text-center mb-8 text-blue-700 tracking-wide drop-shadow-md">
           Investment Tracker
         </h1>
 
         {/* Conditional Rendering based on currentPage state */}
         {currentPage === 'userList' && (
-          <div className="bg-white rounded-xl shadow-2xl p-6 md:p-8 text-gray-900">
+          <div className="bg-white rounded-xl shadow-2xl p-6 md:p-8 text-gray-900 border border-blue-100">
             {/* Header for User List */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-200 pb-4">
               <h2 className="text-3xl font-semibold text-gray-800 mb-4 sm:mb-0">All Users</h2>
@@ -466,9 +472,9 @@ const App = () => {
                   resetUserForm(); // Reset form when opening for new user
                   setShowAddUserModal(true);
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 w-full sm:w-auto"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto flex items-center justify-center"
               >
-                Add New User
+                <User className="mr-2 h-5 w-5" /> Add New User
               </button>
             </div>
 
@@ -517,51 +523,55 @@ const App = () => {
 
         {/* User Details Page */}
         {currentPage === 'userDetails' && selectedUser && (
-          <div className="bg-white rounded-xl shadow-2xl p-6 md:p-8 text-gray-900">
+          <div className="bg-white rounded-xl shadow-2xl p-6 md:p-8 text-gray-900 border border-blue-100">
             {/* Header for User Details */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-200 pb-4">
               <h2 className="text-3xl font-semibold text-gray-800 mb-4 sm:mb-0">
                 {selectedUser.firstName} {selectedUser.secondName}'s Details
               </h2>
-              <div className="flex space-x-2 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                 <button
-                  onClick={() => generateInstallments(selectedUser._id)}
+                  onClick={() => generateInstallments()}
                   disabled={loading}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed w-1/2 sm:w-auto"
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto flex items-center justify-center"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                       Generating...
                     </span>
-                  ) : 'Generate Installments'}
+                  ) : (
+                    <>
+                      <ClipboardList className="mr-2 h-5 w-5" /> Generate Installments
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => setCurrentPage('userList')}
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 w-1/2 sm:w-auto"
+                  className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 w-full sm:w-auto flex items-center justify-center"
                 >
-                  Back to Users
+                  <User className="mr-2 h-5 w-5" /> Back to Users
                 </button>
               </div>
             </div>
 
             {/* User Information Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-gray-100 p-6 rounded-lg shadow-inner">
-              <div>
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">Account Number 1:</strong> {selectedUser.accountNumber1}</p>
-                {selectedUser.accountNumber2 && <p className="text-gray-700 mb-1"><strong className="text-gray-900">Account Number 2:</strong> {selectedUser.accountNumber2}</p>}
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">CIF Number 1:</strong> {selectedUser.cifNumber1}</p>
-                {selectedUser.cifNumber2 && <p className="text-gray-700 mb-1"><strong className="text-gray-900">CIF Number 2:</strong> {selectedUser.cifNumber2}</p>}
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">Mobile:</strong> {selectedUser.mobileNumber}</p>
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">Nominee:</strong> {selectedUser.nomineeName}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-blue-50 p-6 rounded-lg shadow-inner border border-blue-100">
+              <div className="space-y-3">
+                <p className="text-gray-700 flex items-center"><CreditCard className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">Account Number 1:</strong> {selectedUser.accountNumber1}</p>
+                {selectedUser.accountNumber2 && <p className="text-gray-700 flex items-center"><CreditCard className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">Account Number 2:</strong> {selectedUser.accountNumber2}</p>}
+                <p className="text-gray-700 flex items-center"><FileText className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">CIF Number 1:</strong> {selectedUser.cifNumber1}</p>
+                {selectedUser.cifNumber2 && <p className="text-gray-700 flex items-center"><FileText className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">CIF Number 2:</strong> {selectedUser.cifNumber2}</p>}
+                <p className="text-gray-700 flex items-center"><Phone className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">Mobile:</strong> {selectedUser.mobileNumber}</p>
+                <p className="text-gray-700 flex items-center"><Users className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">Nominee:</strong> {selectedUser.nomineeName}</p>
               </div>
-              <div>
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">Monthly Amount:</strong> ₹{selectedUser.monthlyAmount}</p>
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">Total Investment:</strong> ₹{selectedUser.totalInvestmentAmount}</p>
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">Left Investment:</strong> ₹{selectedUser.leftInvestmentAmount}</p>
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">Maturity Amount:</strong> ₹{selectedUser.maturityAmount}</p>
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">Account Open Date:</strong> {format(parseISO(selectedUser.accountOpenDate), 'dd/MM/yyyy')}</p>
-                <p className="text-gray-700 mb-1"><strong className="text-gray-900">Account Close Date:</strong> {format(parseISO(selectedUser.accountCloseDate), 'dd/MM/yyyy')}</p>
+              <div className="space-y-3">
+                <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-green-600" /><strong className="text-gray-900">Monthly Amount:</strong> ₹{selectedUser.monthlyAmount}</p>
+                <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-green-600" /><strong className="text-gray-900">Total Investment:</strong> ₹{selectedUser.totalInvestmentAmount}</p>
+                <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-red-600" /><strong className="text-gray-900">Left Investment:</strong> ₹{selectedUser.leftInvestmentAmount}</p>
+                <p className="text-gray-700 flex items-center"><Banknote className="mr-2 h-5 w-5 text-purple-600" /><strong className="text-gray-900">Maturity Amount:</strong> ₹{selectedUser.maturityAmount}</p>
+                <p className="text-gray-700 flex items-center"><Calendar className="mr-2 h-5 w-5 text-orange-500" /><strong className="text-gray-900">Account Open Date:</strong> {format(parseISO(selectedUser.accountOpenDate), 'dd/MM/yyyy')}</p>
+                <p className="text-gray-700 flex items-center"><Calendar className="mr-2 h-5 w-5 text-orange-500" /><strong className="text-gray-900">Account Close Date:</strong> {format(parseISO(selectedUser.accountCloseDate), 'dd/MM/yyyy')}</p>
               </div>
             </div>
 
@@ -595,7 +605,8 @@ const App = () => {
                           <td className="py-3 px-4 whitespace-nowrap text-gray-800">{installment.month} {installment.year}</td>
                           <td className="py-3 px-4 text-right whitespace-nowrap text-gray-700">₹{installment.amount}</td>
                           <td className="py-3 px-4 whitespace-nowrap">
-                            <span className={`font-bold ${installment.paid ? 'text-green-600' : 'text-red-600'}`}>
+                            <span className={`font-bold flex items-center ${installment.paid ? 'text-green-600' : 'text-red-600'}`}>
+                              {installment.paid ? <CheckCircle className="mr-1 h-4 w-4" /> : <XCircle className="mr-1 h-4 w-4" />}
                               {installment.paid ? 'Paid' : 'Pending'}
                             </span>
                           </td>
@@ -603,7 +614,7 @@ const App = () => {
                             <button
                               onClick={() => handleInstallmentSelect(installment)}
                               disabled={loading}
-                              className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-1 px-3 rounded-md text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-1 px-3 rounded-md text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:scale-105"
                             >
                               Edit
                             </button>
@@ -620,194 +631,240 @@ const App = () => {
 
         {/* Add User Modal */}
         {showAddUserModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 md:p-8 relative text-gray-900">
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"> {/* Changed opacity to 90 */}
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 md:p-8 relative text-gray-900 max-h-[90vh] overflow-y-auto custom-scrollbar">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-4">Add New User</h2>
               <form onSubmit={(e) => { e.preventDefault(); createUser(); }}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                   <div className="relative">
                     <label htmlFor="firstName" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">First Name</label>
-                    <input
-                      id="firstName"
-                      type="text"
-                      placeholder=" " // Placeholder for floating label effect
-                      value={userForm.firstName}
-                      onChange={(e) => setUserForm({ ...userForm, firstName: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <User className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="firstName"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.firstName}
+                        onChange={(e) => setUserForm({ ...userForm, firstName: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="secondName" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Second Name</label>
-                    <input
-                      id="secondName"
-                      type="text"
-                      placeholder=" "
-                      value={userForm.secondName}
-                      onChange={(e) => setUserForm({ ...userForm, secondName: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <User className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="secondName"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.secondName}
+                        onChange={(e) => setUserForm({ ...userForm, secondName: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="accountNumber1" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Number 1</label>
-                    <input
-                      id="accountNumber1"
-                      type="text"
-                      placeholder=" "
-                      value={userForm.accountNumber1}
-                      onChange={(e) => setUserForm({ ...userForm, accountNumber1: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <CreditCard className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="accountNumber1"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.accountNumber1}
+                        onChange={(e) => setUserForm({ ...userForm, accountNumber1: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="accountNumber2" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Number 2 (Optional)</label>
-                    <input
-                      id="accountNumber2"
-                      type="text"
-                      placeholder=" "
-                      value={userForm.accountNumber2}
-                      onChange={(e) => setUserForm({ ...userForm, accountNumber2: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <CreditCard className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="accountNumber2"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.accountNumber2}
+                        onChange={(e) => setUserForm({ ...userForm, accountNumber2: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="cifNumber1" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">CIF Number 1</label>
-                    <input
-                      id="cifNumber1"
-                      type="text"
-                      placeholder=" "
-                      value={userForm.cifNumber1}
-                      onChange={(e) => setUserForm({ ...userForm, cifNumber1: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <FileText className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="cifNumber1"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.cifNumber1}
+                        onChange={(e) => setUserForm({ ...userForm, cifNumber1: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="cifNumber2" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">CIF Number 2 (Optional)</label>
-                    <input
-                      id="cifNumber2"
-                      type="text"
-                      placeholder=" "
-                      value={userForm.cifNumber2}
-                      onChange={(e) => setUserForm({ ...userForm, cifNumber2: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <FileText className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="cifNumber2"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.cifNumber2}
+                        onChange={(e) => setUserForm({ ...userForm, cifNumber2: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="mobileNumber" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Mobile Number</label>
-                    <input
-                      id="mobileNumber"
-                      type="tel"
-                      placeholder=" "
-                      value={userForm.mobileNumber}
-                      onChange={(e) => setUserForm({ ...userForm, mobileNumber: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Phone className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="mobileNumber"
+                        type="tel"
+                        placeholder=" "
+                        value={userForm.mobileNumber}
+                        onChange={(e) => setUserForm({ ...userForm, mobileNumber: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="nomineeName" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Nominee Name</label>
-                    <input
-                      id="nomineeName"
-                      type="text"
-                      placeholder=" "
-                      value={userForm.nomineeName}
-                      onChange={(e) => setUserForm({ ...userForm, nomineeName: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Users className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="nomineeName"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.nomineeName}
+                        onChange={(e) => setUserForm({ ...userForm, nomineeName: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="monthlyAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Monthly Amount</label>
-                    <input
-                      id="monthlyAmount"
-                      type="number"
-                      placeholder=" "
-                      value={userForm.monthlyAmount}
-                      onChange={(e) => setUserForm({ ...userForm, monthlyAmount: Number(e.target.value) })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <DollarSign className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="monthlyAmount"
+                        type="number"
+                        placeholder=" "
+                        value={userForm.monthlyAmount}
+                        onChange={(e) => setUserForm({ ...userForm, monthlyAmount: Number(e.target.value) })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="totalInvestmentAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Total Investment Amount</label>
-                    <input
-                      id="totalInvestmentAmount"
-                      type="number"
-                      placeholder=" "
-                      value={userForm.totalInvestmentAmount}
-                      onChange={(e) => setUserForm({ ...userForm, totalInvestmentAmount: Number(e.target.value) })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <DollarSign className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="totalInvestmentAmount"
+                        type="number"
+                        placeholder=" "
+                        value={userForm.totalInvestmentAmount}
+                        onChange={(e) => setUserForm({ ...userForm, totalInvestmentAmount: Number(e.target.value) })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="leftInvestmentAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Left Investment Amount</label>
-                    <input
-                      id="leftInvestmentAmount"
-                      type="number"
-                      placeholder=" "
-                      value={userForm.leftInvestmentAmount}
-                      onChange={(e) => setUserForm({ ...userForm, leftInvestmentAmount: Number(e.target.value) })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <DollarSign className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="leftInvestmentAmount"
+                        type="number"
+                        placeholder=" "
+                        value={userForm.leftInvestmentAmount}
+                        onChange={(e) => setUserForm({ ...userForm, leftInvestmentAmount: Number(e.target.value) })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="maturityAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Maturity Amount</label>
-                    <input
-                      id="maturityAmount"
-                      type="number"
-                      placeholder=" "
-                      value={userForm.maturityAmount}
-                      onChange={(e) => setUserForm({ ...userForm, maturityAmount: Number(e.target.value) })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Banknote className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="maturityAmount"
+                        type="number"
+                        placeholder=" "
+                        value={userForm.maturityAmount}
+                        onChange={(e) => setUserForm({ ...userForm, maturityAmount: Number(e.target.value) })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="accountOpenDate" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Open Date</label>
-                    <input
-                      id="accountOpenDate"
-                      type="date"
-                      value={userForm.accountOpenDate}
-                      onChange={(e) => setUserForm({ ...userForm, accountOpenDate: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Calendar className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="accountOpenDate"
+                        type="date"
+                        value={userForm.accountOpenDate}
+                        onChange={(e) => setUserForm({ ...userForm, accountOpenDate: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="relative">
                     <label htmlFor="accountCloseDate" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Close Date</label>
-                    <input
-                      id="accountCloseDate"
-                      type="date"
-                      value={userForm.accountCloseDate}
-                      onChange={(e) => setUserForm({ ...userForm, accountCloseDate: e.target.value })}
-                      className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                      required
-                    />
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Calendar className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="accountCloseDate"
+                        type="date"
+                        value={userForm.accountCloseDate}
+                        onChange={(e) => setUserForm({ ...userForm, accountCloseDate: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end space-x-4">
                   <button
                     type="button"
                     onClick={() => setShowAddUserModal(false)}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg shadow-md transition-colors"
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-full shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 flex items-center justify-center"
                   >
                     {loading ? (
                       <span className="flex items-center justify-center">
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                         Saving...
                       </span>
-                    ) : 'Save User'}
+                    ) : (
+                      <>
+                        <User className="mr-2 h-5 w-5" /> Save User
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -817,27 +874,30 @@ const App = () => {
 
         {/* Edit Installment Modal */}
         {showEditInstallmentModal && installmentForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 md:p-8 relative text-gray-900">
+          <div className="fixed inset-0 bg-black bg-black/60 flex items-center justify-center z-50 p-4"> {/* Changed opacity to 90 */}
+            <div className="bg-white rounded-xl shadow-2xl w-full  max-w-lg p-6 md:p-8 relative text-gray-900 overflow-y-auto custom-scrollbar"> {/* Changed max-w-md to max-w-lg and removed max-h */}
               <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-4">Edit Installment</h2>
-              <p className="text-gray-700 mb-4 text-lg">
-                <strong className="text-gray-900">Month:</strong> {installmentForm.month} {installmentForm.year}
+              <p className="text-gray-700 mb-4 text-lg flex items-center">
+                <Calendar className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">Month:</strong> {installmentForm.month} {installmentForm.year}
               </p>
               <form onSubmit={(e) => { e.preventDefault(); updateInstallment(); }}>
                 <div className="mb-4 relative">
                   <label htmlFor="installmentAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Amount</label>
-                  <input
-                    id="installmentAmount"
-                    type="number"
-                    placeholder=" "
-                    value={installmentForm.amount}
-                    onChange={(e) => setInstallmentForm({ ...installmentForm, amount: Number(e.target.value) })}
-                    className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    required
-                  />
+                  <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                    <DollarSign className="absolute left-3 text-gray-400 h-5 w-5" />
+                    <input
+                      id="installmentAmount"
+                      type="number"
+                      placeholder=" "
+                      value={installmentForm.amount}
+                      onChange={(e) => setInstallmentForm({ ...installmentForm, amount: Number(e.target.value) })}
+                      className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="mb-6 relative">
-                  <label htmlFor="installmentStatus" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Status</label>
+                  <label htmlFor="installmentStatus" className="absolute top-2 left-3 text-xs text-gray-500 bg-white px-1">Status</label>
                   <div className="relative">
                     <select
                       id="installmentStatus"
@@ -858,21 +918,25 @@ const App = () => {
                   <button
                     type="button"
                     onClick={() => setShowEditInstallmentModal(false)}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg shadow-md transition-colors"
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-full shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 flex items-center justify-center"
                   >
                     {loading ? (
                       <span className="flex items-center justify-center">
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                         Updating...
                       </span>
-                    ) : 'Update Installment'}
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-5 w-5" /> Update Installment
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -897,3 +961,5 @@ const App = () => {
 };
 
 export default App;
+
+
