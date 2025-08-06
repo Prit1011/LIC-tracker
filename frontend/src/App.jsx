@@ -13,7 +13,7 @@ import InstallBtn from './components/InstallBtn';
 
 
 // Base URL for your API
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://lic-tracker.onrender.com/api';
 
 // Main App Component
 const App = () => {
@@ -251,7 +251,7 @@ const handleSubmit = async () => {
   }
 
   try {
-    const response = await fetch(`http://localhost:5000/api/installments/download?month=${month}&year=${year}`, {
+    const response = await fetch(`${API_URL}/api/installments/download?month=${month}&year=${year}`, {
       method: "GET",
     });
 
