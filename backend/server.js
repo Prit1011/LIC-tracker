@@ -85,7 +85,7 @@ app.get('/api/installments/download', async (req, res) => {
       year: parseInt(year)
     }).populate('userId', 'firstName secondName accountNumber1 accountNumber2 cifNumber1 cifNumber2 mobileNumber nomineeName monthlyAmount totalInvestmentAmount maturityAmount');
 
-    console.log(`Installments found for ${month} ${year}:`, installments);
+   
 
     if (installments.length === 0) {
       return res.status(404).json({ error: 'No installments found for the specified month and year' });
