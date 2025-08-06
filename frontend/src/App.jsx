@@ -256,7 +256,7 @@ const App = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/installments/download?month=${month}&year=${year}`, {
+      const response = await fetch(`${API_URL}/installments/download?month=${month}&year=${year}`, {
         method: "GET",
       });
 

@@ -85,6 +85,8 @@ app.get('/api/installments/download', async (req, res) => {
       year: parseInt(year)
     }).populate('userId', 'firstName secondName accountNumber1 accountNumber2 cifNumber1 cifNumber2 mobileNumber nomineeName monthlyAmount totalInvestmentAmount maturityAmount');
 
+    console.log(`Installments found for ${month} ${year}:`, installments);
+
     if (installments.length === 0) {
       return res.status(404).json({ error: 'No installments found for the specified month and year' });
     }
@@ -212,22 +214,42 @@ app.post('/api/installments/generate/:userId', async (req, res) => {
 
     let currentDate = new Date(startDate);
     while (currentDate <= endDate) {
-      installments.push({
+      const month = currentDate.toLocaleString('default', { month: 'short' });
+      const year = currentDate.getFullYear();
+
+      // Check if installment already exists for this user/month/year
+      const exists = await Installment.findOne({
         userId: user._id,
-        month: currentDate.toLocaleString('default', { month: 'short' }),
-        year: currentDate.getFullYear(),
-        amount: 0,
-        paid: false
+        month,
+        year
       });
+
+      if (!exists) {
+        installments.push({
+          userId: user._id,
+          month,
+          year,
+          amount: 0,
+          paid: false
+        });
+      }
+
       currentDate.setMonth(currentDate.getMonth() + 1);
     }
 
-    await Installment.insertMany(installments);
-    res.status(201).json({ message: 'Installments generated successfully', count: installments.length });
+    if (installments.length > 0) {
+      await Installment.insertMany(installments);
+    }
+
+    res.status(201).json({
+      message: 'Installments generated successfully',
+      inserted: installments.length
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 // Get all installments for a user
 app.get('/api/installments/:userId', async (req, res) => {
   try {
