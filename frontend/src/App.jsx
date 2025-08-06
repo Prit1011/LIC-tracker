@@ -4,8 +4,12 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 import {
-  User, CreditCard, Phone, Calendar, DollarSign, FileText, Users, CheckCircle, XCircle, Banknote, ClipboardList
+  User, CreditCard, Phone, Calendar, DollarSign, FileText, Users, CheckCircle, XCircle, Banknote, ClipboardList,
+  Sheet,
+  CloudCog,
+  FileDown
 } from 'lucide-react'; // Importing icons
+import InstallBtn from './components/InstallBtn';
 
 
 // Base URL for your API
@@ -15,7 +19,7 @@ const API_URL = 'http://localhost:5000/api';
 const App = () => {
   // State to manage the current view: 'userList', 'userDetails'
   const [currentPage, setCurrentPage] = useState('userList');
-  // State to store the list of all users
+  const[isLoading,setIsLoading]= useState(false)  // State to store the list of all users
   const [users, setUsers] = useState([]);
   // State to store the currently selected user for details view
   const [selectedUser, setSelectedUser] = useState(null);
@@ -25,6 +29,9 @@ const App = () => {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   // State to control the visibility of the Edit Installment modal
   const [showEditInstallmentModal, setShowEditInstallmentModal] = useState(false);
+   const [isOpen, setIsOpen] = useState(false);
+  const [month, setMonth] = useState("");
+  const [year, setYear] = useState("");
   // State for the form data when adding a new user
   const [userForm, setUserForm] = useState({
     firstName: '',
@@ -234,7 +241,121 @@ const App = () => {
     fetchUsers();
   }, []);
 
-  // --- Render Logic ---
+const handleSubmit = async () => {
+  console.log("Month:", month);
+  console.log("Year:", year);
+
+  if (!month || !year) {
+    alert("Please select both month and year");
+    return;
+  }
+
+  try {
+    const response = await fetch(`http://localhost:5000/api/installments/download?month=${month}&year=${year}`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Download failed");
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+
+    // Optional: you can name the file better using the same logic as server
+    a.download = `Installments_${month}_${year}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+  } catch (err) {
+    console.error("Download error:", err);
+    alert("Download failed: " + err.message);
+  } finally {
+    setIsOpen(false);
+    setMonth("");
+    setYear("");
+  }
+};
+
+const downloadFullReport = async (userId) => {
+  try {
+    setIsLoading(true);
+    
+    // Validate userId
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const apiUrl = `${API_URL}/users/${userId}/full-report`;
+    
+    const response = await axios.get(apiUrl, {
+      responseType: 'blob',
+      headers: {
+        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      },
+      validateStatus: function (status) {
+        return status >= 200 && status < 300; // Only resolve for 2xx status codes
+      }
+    });
+
+    // Handle potential errors in the response
+    if (response.headers['content-type'].includes('text/html')) {
+      // This means we got an HTML error page instead of the Excel file
+      const errorText = await new Response(response.data).text();
+      throw new Error('Server returned an error page');
+    }
+
+    // Create download link
+    const url = window.URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Extract filename from headers
+    let fileName = 'UserReport.xlsx';
+    const contentDisposition = response.headers['content-disposition'];
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename="(.+)"/) || 
+                           contentDisposition.match(/filename=([^;]+)/);
+      if (fileNameMatch && fileNameMatch[1]) {
+        fileName = fileNameMatch[1];
+      }
+    }
+    
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    link.remove();
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+    }, 100);
+
+  } catch (error) {
+    console.error('Download error:', error);
+    
+    let errorMessage = 'Download failed';
+    if (error.response) {
+      if (error.response.status === 404) {
+        errorMessage = 'User not found or report endpoint unavailable';
+      } else if (error.response.status === 500) {
+        errorMessage = 'Server error while generating report';
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    showSnackbar(errorMessage, 'error');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
 
   return (
     // Main container with gradient background and responsive padding
@@ -251,6 +372,13 @@ const App = () => {
             {/* Header for User List */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-200 pb-4">
               <h2 className="text-3xl font-semibold text-gray-800 mb-4 sm:mb-0">All Users</h2>
+              <button
+        onClick={() => setIsOpen(true)}
+className="bg-blue-600 hover:bg-blue-700 mb-2 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto flex items-center justify-center"
+
+      >
+       <Sheet  className="mr-2 h-5 w-5"  /> Excel Download 
+      </button>
               <button
                 onClick={() => {
                   resetUserForm(); // Reset form when opening for new user
@@ -314,6 +442,13 @@ const App = () => {
                 {selectedUser.firstName} {selectedUser.secondName}'s Details
               </h2>
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+<button
+  onClick={() => downloadFullReport(selectedUser._id)}
+  disabled={isLoading}
+ className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto flex items-center justify-center"
+>
+  {isLoading ? ('Generating Report...' ): (<div className='flex justify-center items-center gap-2'><FileDown /> Download Full Report</div> )}
+</button>
                 <button
                   onClick={() => generateInstallments()}
                   disabled={loading}
@@ -731,7 +866,59 @@ const App = () => {
             </div>
           </div>
         )}
+{/* open for downkload excle file  */}
+{isOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+            <h2 className="text-xl font-semibold mb-4">Select Month & Year</h2>
 
+            <div className="mb-3">
+              <label className="block text-sm font-medium">Month</label>
+              <select
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="mt-1 block w-full border border-gray-300 rounded p-2"
+              >
+                <option value="">-- Select Month --</option>
+                {[
+                  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sept", "Oct", "Nov", "Dec",
+                ].map((m, i) => (
+                  <option key={i} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium">Year</label>
+              <input
+                type="number"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="mt-1 block w-full border border-gray-300 rounded p-2"
+                placeholder="e.g. 2025"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-full shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
+            
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto flex items-center justify-center"
+             
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         {/* Snackbar for notifications */}
         {snackbar.open && (
           <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg text-white transition-all duration-300 ${snackbar.severity === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
@@ -744,6 +931,7 @@ const App = () => {
           </div>
         )}
       </div>
+      <InstallBtn />
     </div>
   );
 };
