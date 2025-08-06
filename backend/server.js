@@ -184,6 +184,8 @@ const installmentSchema = new mongoose.Schema({
   year: Number,
   amount: { type: Number, default: 0 },
   paid: { type: Boolean, default: false }
+}, {
+  timestamps: true // ✅ This adds createdAt and updatedAt fields
 });
 
 const User = mongoose.model('User', userSchema);

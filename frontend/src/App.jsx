@@ -361,6 +361,12 @@ const App = () => {
     }
   };
 
+  const calculateLeftInvestment = (totalInvestmentAmount, installments) => {
+    const totalPaid = installments.reduce((acc, inst) => acc + (inst.amount || 0), 0);
+    return totalInvestmentAmount - totalPaid;
+  };
+
+
   /**
    * Updates an existing installment by sending `installmentForm` data to the backend API.
    * Refreshes the installments list for the current user after successful update.
@@ -454,7 +460,7 @@ const App = () => {
 
   return (
     // Main container with gradient background and responsive padding
-     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-200 text-gray-800 p-4 font-sans antialiased">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-200 text-gray-800 p-4 font-sans antialiased">
       <div className="container mx-auto p-4">
         {/* Application Title */}
         <h1 className="text-4xl font-extrabold text-center mb-8 text-blue-700 tracking-wide drop-shadow-md">
@@ -568,7 +574,7 @@ const App = () => {
               <div className="space-y-3">
                 <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-green-600" /><strong className="text-gray-900">Monthly Amount:</strong> ₹{selectedUser.monthlyAmount}</p>
                 <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-green-600" /><strong className="text-gray-900">Total Investment:</strong> ₹{selectedUser.totalInvestmentAmount}</p>
-                <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-red-600" /><strong className="text-gray-900">Left Investment:</strong> ₹{selectedUser.leftInvestmentAmount}</p>
+                <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-red-600" /><strong className="text-gray-900">Left Investment:</strong> ₹{calculateLeftInvestment(selectedUser.totalInvestmentAmount, installments)}</p>
                 <p className="text-gray-700 flex items-center"><Banknote className="mr-2 h-5 w-5 text-purple-600" /><strong className="text-gray-900">Maturity Amount:</strong> ₹{selectedUser.maturityAmount}</p>
                 <p className="text-gray-700 flex items-center"><Calendar className="mr-2 h-5 w-5 text-orange-500" /><strong className="text-gray-900">Account Open Date:</strong> {format(parseISO(selectedUser.accountOpenDate), 'dd/MM/yyyy')}</p>
                 <p className="text-gray-700 flex items-center"><Calendar className="mr-2 h-5 w-5 text-orange-500" /><strong className="text-gray-900">Account Close Date:</strong> {format(parseISO(selectedUser.accountCloseDate), 'dd/MM/yyyy')}</p>
@@ -591,6 +597,7 @@ const App = () => {
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider rounded-tl-lg">Month/Year</th>
                       <th className="py-3 px-4 text-right text-sm font-medium text-gray-600 uppercase tracking-wider">Amount</th>
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Date</th>
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider rounded-tr-lg">Actions</th>
                     </tr>
                   </thead>
@@ -609,6 +616,9 @@ const App = () => {
                               {installment.paid ? <CheckCircle className="mr-1 h-4 w-4" /> : <XCircle className="mr-1 h-4 w-4" />}
                               {installment.paid ? 'Paid' : 'Pending'}
                             </span>
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap text-gray-500 text-sm italic">
+                            {installment.updatedAt && new Date(installment.updatedAt).toLocaleString()}
                           </td>
                           <td className="py-3 px-4 whitespace-nowrap">
                             <button
