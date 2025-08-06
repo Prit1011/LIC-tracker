@@ -7,19 +7,24 @@ import {
   User, CreditCard, Phone, Calendar, DollarSign, FileText, Users, CheckCircle, XCircle, Banknote, ClipboardList,
   Sheet,
   CloudCog,
-  FileDown
+  FileDown,
+  Check,
+  TrendingUp,
+  Loader2,
+  ArrowLeft,
+  Edit
 } from 'lucide-react'; // Importing icons
 import InstallBtn from './components/InstallBtn';
 
 
 // Base URL for your API
-const API_URL = 'https://lic-tracker.onrender.com/api';
+const API_URL = 'http://localhost:5000/api';
 
 // Main App Component
 const App = () => {
   // State to manage the current view: 'userList', 'userDetails'
   const [currentPage, setCurrentPage] = useState('userList');
-  const[isLoading,setIsLoading]= useState(false)  // State to store the list of all users
+  const [isLoading, setIsLoading] = useState(false)  // State to store the list of all users
   const [users, setUsers] = useState([]);
   // State to store the currently selected user for details view
   const [selectedUser, setSelectedUser] = useState(null);
@@ -29,7 +34,7 @@ const App = () => {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   // State to control the visibility of the Edit Installment modal
   const [showEditInstallmentModal, setShowEditInstallmentModal] = useState(false);
-   const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
   // State for the form data when adding a new user
@@ -144,11 +149,11 @@ const App = () => {
   };
 
   const calculateLeftInvestment = (totalInvestmentAmount, installments) => {
-  const totalPaid = installments.reduce((acc, inst) => {
-    return acc + ((inst.paid ? inst.amount : 0) || 0);
-  }, 0);
-  return totalInvestmentAmount - totalPaid;
-};
+    const totalPaid = installments.reduce((acc, inst) => {
+      return acc + ((inst.paid ? inst.amount : 0) || 0);
+    }, 0);
+    return totalInvestmentAmount - totalPaid;
+  };
 
 
 
@@ -241,193 +246,344 @@ const App = () => {
     fetchUsers();
   }, []);
 
-const handleSubmit = async () => {
-  console.log("Month:", month);
-  console.log("Year:", year);
+  const handleSubmit = async () => {
+    console.log("Month:", month);
+    console.log("Year:", year);
 
-  if (!month || !year) {
-    alert("Please select both month and year");
-    return;
-  }
-
-  try {
-    const response = await fetch(`${API_URL}/api/installments/download?month=${month}&year=${year}`, {
-      method: "GET",
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Download failed");
+    if (!month || !year) {
+      alert("Please select both month and year");
+      return;
     }
 
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
+    try {
+      const response = await fetch(`${API_URL}/api/installments/download?month=${month}&year=${year}`, {
+        method: "GET",
+      });
 
-    // Optional: you can name the file better using the same logic as server
-    a.download = `Installments_${month}_${year}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-  } catch (err) {
-    console.error("Download error:", err);
-    alert("Download failed: " + err.message);
-  } finally {
-    setIsOpen(false);
-    setMonth("");
-    setYear("");
-  }
-};
-
-const downloadFullReport = async (userId) => {
-  try {
-    setIsLoading(true);
-    
-    // Validate userId
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-
-    const apiUrl = `${API_URL}/users/${userId}/full-report`;
-    
-    const response = await axios.get(apiUrl, {
-      responseType: 'blob',
-      headers: {
-        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      },
-      validateStatus: function (status) {
-        return status >= 200 && status < 300; // Only resolve for 2xx status codes
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Download failed");
       }
-    });
 
-    // Handle potential errors in the response
-    if (response.headers['content-type'].includes('text/html')) {
-      // This means we got an HTML error page instead of the Excel file
-      const errorText = await new Response(response.data).text();
-      throw new Error('Server returned an error page');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+
+      // Optional: you can name the file better using the same logic as server
+      a.download = `Installments_${month}_${year}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+    } catch (err) {
+      console.error("Download error:", err);
+      alert("Download failed: " + err.message);
+    } finally {
+      setIsOpen(false);
+      setMonth("");
+      setYear("");
     }
+  };
 
-    // Create download link
-    const url = window.URL.createObjectURL(response.data);
-    const link = document.createElement('a');
-    link.href = url;
-    
-    // Extract filename from headers
-    let fileName = 'UserReport.xlsx';
-    const contentDisposition = response.headers['content-disposition'];
-    if (contentDisposition) {
-      const fileNameMatch = contentDisposition.match(/filename="(.+)"/) || 
-                           contentDisposition.match(/filename=([^;]+)/);
-      if (fileNameMatch && fileNameMatch[1]) {
-        fileName = fileNameMatch[1];
+  const downloadFullReport = async (userId) => {
+    try {
+      setIsLoading(true);
+
+      // Validate userId
+      if (!userId) {
+        throw new Error('User ID is required');
       }
-    }
-    
-    link.setAttribute('download', fileName);
-    document.body.appendChild(link);
-    link.click();
-    
-    // Clean up
-    link.remove();
-    setTimeout(() => {
-      window.URL.revokeObjectURL(url);
-    }, 100);
 
-  } catch (error) {
-    console.error('Download error:', error);
-    
-    let errorMessage = 'Download failed';
-    if (error.response) {
-      if (error.response.status === 404) {
-        errorMessage = 'User not found or report endpoint unavailable';
-      } else if (error.response.status === 500) {
-        errorMessage = 'Server error while generating report';
+      const apiUrl = `${API_URL}/users/${userId}/full-report`;
+
+      const response = await axios.get(apiUrl, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        },
+        validateStatus: function (status) {
+          return status >= 200 && status < 300; // Only resolve for 2xx status codes
+        }
+      });
+
+      // Handle potential errors in the response
+      if (response.headers['content-type'].includes('text/html')) {
+        // This means we got an HTML error page instead of the Excel file
+        const errorText = await new Response(response.data).text();
+        throw new Error('Server returned an error page');
       }
-    } else if (error.message) {
-      errorMessage = error.message;
+
+      // Create download link
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Extract filename from headers
+      let fileName = 'UserReport.xlsx';
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="(.+)"/) ||
+          contentDisposition.match(/filename=([^;]+)/);
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = fileNameMatch[1];
+        }
+      }
+
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up
+      link.remove();
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
+    } catch (error) {
+      console.error('Download error:', error);
+
+      let errorMessage = 'Download failed';
+      if (error.response) {
+        if (error.response.status === 404) {
+          errorMessage = 'User not found or report endpoint unavailable';
+        } else if (error.response.status === 500) {
+          errorMessage = 'Server error while generating report';
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      showSnackbar(errorMessage, 'error');
+    } finally {
+      setIsLoading(false);
     }
-    
-    showSnackbar(errorMessage, 'error');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
 
 
   return (
     // Main container with gradient background and responsive padding
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-200 text-gray-800 p-4 font-sans antialiased">
-      <div className="container mx-auto p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-200 text-gray-800 p-2 font-sans antialiased">
+      <div className="container  p-1">
         {/* Application Title */}
         <h1 className="text-4xl font-extrabold text-center mb-8 text-blue-700 tracking-wide drop-shadow-md">
           Investment Tracker
         </h1>
 
-        {/* Conditional Rendering based on currentPage state */}
         {currentPage === 'userList' && (
-          <div className="bg-white rounded-xl shadow-2xl p-6 md:p-8 text-gray-900 border border-blue-100">
-            {/* Header for User List */}
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-200 pb-4">
-              <h2 className="text-3xl font-semibold text-gray-800 mb-4 sm:mb-0">All Users</h2>
-              <button
-        onClick={() => setIsOpen(true)}
-className="bg-blue-600 hover:bg-blue-700 mb-2 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto flex items-center justify-center"
-
-      >
-       <Sheet  className="mr-2 h-5 w-5"  /> Excel Download 
-      </button>
-              <button
-                onClick={() => {
-                  resetUserForm(); // Reset form when opening for new user
-                  setShowAddUserModal(true);
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto flex items-center justify-center"
-              >
-                <User className="mr-2 h-5 w-5" /> Add New User
-              </button>
+          <div className="bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/30 rounded-xl shadow-2xl p-4 md:p-6 lg:p-8 text-gray-900 border border-blue-200/60 w-full mx-auto backdrop-blur-sm">
+            {/* Enhanced Header */}
+            <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center mb-8 border-b-2 border-gradient-to-r from-blue-200 to-indigo-200 pb-6">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">All Users</h2>
+                <p className="text-gray-600 text-sm md:text-base">Manage and track user accounts</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => setIsOpen(true)}
+                  className="group bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 flex items-center justify-center text-sm md:text-base"
+                >
+                  <Sheet className="mr-2 h-4 w-4 md:h-5 md:w-5 group-hover:rotate-12 transition-transform duration-300" />
+                  <span>Excel Download</span>
+                </button>
+                <button
+                  onClick={() => {
+                    resetUserForm();
+                    setShowAddUserModal(true);
+                  }}
+                  className="group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 flex items-center justify-center text-sm md:text-base"
+                >
+                  <User className="mr-2 h-4 w-4 md:h-5 md:w-5 group-hover:scale-110 transition-transform duration-300" />
+                  <span>Add New User</span>
+                </button>
+              </div>
             </div>
 
-            {/* Loading State for User List */}
+
+            {/* Enhanced Loading State */}
             {loading && users.length === 0 ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="flex flex-col justify-center items-center h-64 space-y-4">
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-blue-200 rounded-full"></div>
+                  <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-700 font-semibold">Loading users...</p>
+                  <p className="text-gray-500 text-sm">Please wait a moment</p>
+                </div>
               </div>
             ) : (
-              // Display Users Table or No Users Message
-              <div className="overflow-x-auto max-h-[600px] custom-scrollbar">
-                <table className="min-w-full bg-white rounded-lg shadow-md border border-gray-200">
-                  <thead className="sticky top-0 bg-gray-100 z-10">
-                    <tr>
-                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider rounded-tl-lg">Name</th>
-                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Account Number</th>
-                      <th className="py-3 px-4 text-right text-sm font-medium text-gray-600 uppercase tracking-wider">Monthly Amount</th>
-                      <th className="py-3 px-4 text-right text-sm font-medium text-gray-600 uppercase tracking-wider rounded-tr-lg">Total Investment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.length === 0 ? (
-                      <tr>
-                        <td colSpan="4" className="text-center py-6 text-gray-500">No users found. Add a new user to get started!</td>
-                      </tr>
-                    ) : (
-                      users.map(user => (
-                        <tr
-                          key={user._id}
-                          onClick={() => handleUserSelect(user)}
-                          className="border-b border-gray-200 last:border-b-0 hover:bg-blue-50 transition-colors duration-200 cursor-pointer"
-                        >
-                          <td className="py-3 px-4 whitespace-nowrap text-gray-800">{user.firstName} {user.secondName}</td>
-                          <td className="py-3 px-4 whitespace-nowrap text-gray-700">{user.accountNumber1}</td>
-                          <td className="py-3 px-4 text-right whitespace-nowrap text-gray-700">₹{user.monthlyAmount}</td>
-                          <td className="py-3 px-4 text-right whitespace-nowrap text-gray-700">₹{user.totalInvestmentAmount}</td>
+              <div className="space-y-6">
+                {/* Mobile Stats Cards - Only show on mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:hidden">
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Total Users</p>
+                        <p className="text-2xl font-bold">{users.length}</p>
+                      </div>
+                      <User className="h-8 w-8 text-blue-200" />
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-medium">Active</p>
+                        <p className="text-2xl font-bold">{users.length}</p>
+                      </div>
+                      <div className="h-8 w-8 bg-green-400 rounded-full flex items-center justify-center">
+                        <div className="h-3 w-3 bg-white rounded-full animate-pulse"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Table/Card Container */}
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                  {/* Desktop Table View */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead className="bg-gradient-to-r from-gray-50 via-blue-50 to-indigo-50">
+                        <tr>
+                          <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                            <div className="flex items-center space-x-2">
+                              <User className="h-4 w-4 text-blue-600" />
+                              <span>Name</span>
+                            </div>
+                          </th>
+                          <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Account Number</th>
+                          <th className="py-4 px-6 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Monthly Amount</th>
+                          <th className="py-4 px-6 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Total Investment</th>
                         </tr>
-                      ))
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {users.length === 0 ? (
+                          <tr>
+                            <td colSpan="4" className="text-center py-12">
+                              <div className="flex flex-col items-center space-y-4">
+                                <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center">
+                                  <User className="h-8 w-8 text-gray-400" />
+                                </div>
+                                <div>
+                                  <p className="text-lg font-semibold text-gray-700 mb-1">No users found</p>
+                                  <p className="text-gray-500">Add a new user to get started!</p>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          users.map((user, index) => (
+                            <tr
+                              key={user._id}
+                              onClick={() => handleUserSelect(user)}
+                              className="group hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 cursor-pointer"
+                            >
+                              <td className="py-5 px-6 whitespace-nowrap">
+                                <div className="flex items-center space-x-3">
+                                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                                    {user.firstName.charAt(0)}{user.secondName?.charAt(0) || ''}
+                                  </div>
+                                  <div>
+                                    <div className="text-base font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+                                      {user.firstName} {user.secondName}
+                                    </div>
+                                    <div className="text-sm text-gray-500">User #{index + 1}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-5 px-6 whitespace-nowrap">
+                                <div className="text-sm font-mono font-medium text-gray-900">{user.accountNumber1}</div>
+                                <div className="text-xs text-gray-500">Primary Account</div>
+                              </td>
+                              <td className="py-5 px-6 text-right whitespace-nowrap">
+                                <div className="text-lg font-bold text-green-600">₹{user.monthlyAmount.toLocaleString()}</div>
+                                <div className="text-xs text-gray-500">per month</div>
+                              </td>
+                              <td className="py-5 px-6 text-right whitespace-nowrap">
+                                <div className="text-lg font-bold text-blue-600">₹{user.totalInvestmentAmount.toLocaleString()}</div>
+                                <div className="text-xs text-gray-500">total amount</div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="sm:hidden">
+                    {users.length === 0 ? (
+                      <div className="text-center py-12 px-4">
+                        <div className="flex flex-col items-center space-y-4">
+                          <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center">
+                            <User className="h-10 w-10 text-gray-400" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-semibold text-gray-800 mb-2">No users found</h3>
+                            <p className="text-gray-500 mb-6">Add a new user to get started!</p>
+                            <button
+                              onClick={() => {
+                                resetUserForm();
+                                setShowAddUserModal(true);
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-xl transition-colors duration-200"
+                            >
+                              Add First User
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 p-4">
+                        {users.map((user, index) => (
+                          <div
+                            key={user._id}
+                            onClick={() => handleUserSelect(user)}
+                            className="bg-gradient-to-r from-white to-blue-50/30 rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[0.98]"
+                          >
+                            <div className="flex items-center space-x-3 mb-4">
+                              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
+                                {user.firstName.charAt(0)}{user.secondName?.charAt(0) || ''}
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  {user.firstName} {user.secondName}
+                                </h3>
+                                <p className="text-sm text-gray-500 font-mono">{user.accountNumber1}</p>
+                              </div>
+                              <div className="text-right">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  Active
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-white rounded-lg p-3 border border-gray-100">
+                                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Monthly</p>
+                                <p className="text-lg font-bold text-green-600 mt-1">₹{user.monthlyAmount.toLocaleString()}</p>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-100">
+                                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total</p>
+                                <p className="text-lg font-bold text-blue-600 mt-1">₹{user.totalInvestmentAmount.toLocaleString()}</p>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 pt-3 border-t border-gray-100">
+                              <div className="flex items-center justify-center text-sm text-blue-600 font-medium">
+                                <span>Tap to view details</span>
+                                <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -435,111 +591,226 @@ className="bg-blue-600 hover:bg-blue-700 mb-2 text-white font-bold py-2 px-6 rou
 
         {/* User Details Page */}
         {currentPage === 'userDetails' && selectedUser && (
-          <div className="bg-white rounded-xl shadow-2xl p-6 md:p-8 text-gray-900 border border-blue-100">
-            {/* Header for User Details */}
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-200 pb-4">
-              <h2 className="text-3xl font-semibold text-gray-800 mb-4 sm:mb-0">
-                {selectedUser.firstName} {selectedUser.secondName}'s Details
-              </h2>
-              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-<button
-  onClick={() => downloadFullReport(selectedUser._id)}
-  disabled={isLoading}
- className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto flex items-center justify-center"
->
-  {isLoading ? ('Generating Report...' ): (<div className='flex justify-center items-center gap-2'><FileDown /> Download Full Report</div> )}
-</button>
+          <div className="bg-white rounded-xl shadow-2xl p-4 md:p-6 lg:p-8 text-gray-900 border border-blue-100 w-full mx-auto">
+            {/* User Profile Header with Avatar */}
+            <div className="flex flex-col items-center mb-8 sm:flex-row sm:items-start gap-6">
+              <div className="relative">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg border-4 border-white">
+                  <span className="text-white text-3xl sm:text-4xl md:text-5xl font-bold">
+                    {selectedUser.firstName.charAt(0)}{selectedUser.secondName.charAt(0)}
+                  </span>
+                </div>
+                <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-1 border-2 border-white">
+                  <Check className="h-4 w-4 text-white" />
+                </div>
+              </div>
+
+              <div className="text-center sm:text-left flex-1">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-1">
+                  {selectedUser.firstName} {selectedUser.secondName}
+                </h1>
+                <p className="text-gray-600 mb-2 flex items-center justify-center sm:justify-start">
+                  <CreditCard className="h-4 w-4 mr-1 text-blue-500" />
+                  {selectedUser.accountNumber1}
+                </p>
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+                  <span className="bg-blue-100 text-blue-800 text-xs sm:text-sm px-3 py-1 rounded-full flex items-center">
+                    <DollarSign className="h-3 w-3 mr-1" /> ₹{selectedUser.monthlyAmount}/month
+                  </span>
+                  <span className="bg-green-100 text-green-800 text-xs sm:text-sm px-3 py-1 rounded-full flex items-center">
+                    <TrendingUp className="h-3 w-3 mr-1" /> ₹{selectedUser.totalInvestmentAmount}
+                  </span>
+                  <span className="bg-purple-100 text-purple-800 text-xs sm:text-sm px-3 py-1 rounded-full flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {format(parseISO(selectedUser.accountCloseDate), 'MMM yyyy')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons - Improved responsive layout */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-200 pb-6 gap-4">
+              <div className="grid grid-cols-2 sm:flex sm:space-x-3 gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => downloadFullReport(selectedUser._id)}
+                  disabled={isLoading}
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-full shadow transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base w-full"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileDown className="h-4 w-4 mr-2" />
+                  )}
+                  Full Report
+                </button>
                 <button
                   onClick={() => generateInstallments()}
                   disabled={loading}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto flex items-center justify-center"
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-full shadow transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base w-full"
                 >
                   {loading ? (
-                    <span className="flex items-center justify-center">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Generating...
-                    </span>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <>
-                      <ClipboardList className="mr-2 h-5 w-5" /> Generate Installments
-                    </>
+                    <ClipboardList className="h-4 w-4 mr-2" />
                   )}
+                  Generate
                 </button>
                 <button
                   onClick={() => setCurrentPage('userList')}
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 w-full sm:w-auto flex items-center justify-center"
+                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-full shadow transition-all duration-200 hover:scale-[1.02] flex items-center justify-center text-sm sm:text-base w-full sm:w-auto"
                 >
-                  <User className="mr-2 h-5 w-5" /> Back to Users
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
                 </button>
               </div>
             </div>
 
-            {/* User Information Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-blue-50 p-6 rounded-lg shadow-inner border border-blue-100">
+            {/* User Information Grid - Improved responsive layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8 bg-blue-50 p-4 md:p-6 rounded-lg shadow-inner border border-blue-100">
               <div className="space-y-3">
-                <p className="text-gray-700 flex items-center"><CreditCard className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">Account Number 1:</strong> {selectedUser.accountNumber1}</p>
-                {selectedUser.accountNumber2 && <p className="text-gray-700 flex items-center"><CreditCard className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">Account Number 2:</strong> {selectedUser.accountNumber2}</p>}
-                <p className="text-gray-700 flex items-center"><FileText className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">CIF Number 1:</strong> {selectedUser.cifNumber1}</p>
-                {selectedUser.cifNumber2 && <p className="text-gray-700 flex items-center"><FileText className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">CIF Number 2:</strong> {selectedUser.cifNumber2}</p>}
-                <p className="text-gray-700 flex items-center"><Phone className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">Mobile:</strong> {selectedUser.mobileNumber}</p>
-                <p className="text-gray-700 flex items-center"><Users className="mr-2 h-5 w-5 text-blue-500" /><strong className="text-gray-900">Nominee:</strong> {selectedUser.nomineeName}</p>
+                <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 flex items-center">
+                    <CreditCard className="h-4 w-4 mr-2 text-blue-500" />
+                    Account Details
+                  </h3>
+                  <p className="text-gray-800">
+                    <span className="font-medium">Primary:</span> {selectedUser.accountNumber1}
+                    {selectedUser.cifNumber1 && ` (CIF: ${selectedUser.cifNumber1})`}
+                  </p>
+                  {selectedUser.accountNumber2 && (
+                    <p className="text-gray-800 mt-1">
+                      <span className="font-medium">Secondary:</span> {selectedUser.accountNumber2}
+                      {selectedUser.cifNumber2 && ` (CIF: ${selectedUser.cifNumber2})`}
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 flex items-center">
+                    <Phone className="h-4 w-4 mr-2 text-blue-500" />
+                    Contact
+                  </h3>
+                  <p className="text-gray-800">{selectedUser.mobileNumber}</p>
+                </div>
+
+                <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 flex items-center">
+                    <Users className="h-4 w-4 mr-2 text-blue-500" />
+                    Nominee
+                  </h3>
+                  <p className="text-gray-800">{selectedUser.nomineeName || 'Not specified'}</p>
+                </div>
               </div>
+
               <div className="space-y-3">
-                <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-green-600" /><strong className="text-gray-900">Monthly Amount:</strong> ₹{selectedUser.monthlyAmount}</p>
-                <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-green-600" /><strong className="text-gray-900">Total Investment:</strong> ₹{selectedUser.totalInvestmentAmount}</p>
-                <p className="text-gray-700 flex items-center"><DollarSign className="mr-2 h-5 w-5 text-red-600" /><strong className="text-gray-900">Left Investment:</strong> ₹{calculateLeftInvestment(selectedUser.totalInvestmentAmount, installments)}</p>
-                <p className="text-gray-700 flex items-center"><Banknote className="mr-2 h-5 w-5 text-purple-600" /><strong className="text-gray-900">Maturity Amount:</strong> ₹{selectedUser.maturityAmount}</p>
-                <p className="text-gray-700 flex items-center"><Calendar className="mr-2 h-5 w-5 text-orange-500" /><strong className="text-gray-900">Account Open Date:</strong> {format(parseISO(selectedUser.accountOpenDate), 'dd/MM/yyyy')}</p>
-                <p className="text-gray-700 flex items-center"><Calendar className="mr-2 h-5 w-5 text-orange-500" /><strong className="text-gray-900">Account Close Date:</strong> {format(parseISO(selectedUser.accountCloseDate), 'dd/MM/yyyy')}</p>
+                <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 flex items-center">
+                    <DollarSign className="h-4 w-4 mr-2 text-green-500" />
+                    Investment Details
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs text-gray-500">Monthly</p>
+                      <p className="text-gray-800 font-medium">₹{selectedUser.monthlyAmount}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Total</p>
+                      <p className="text-gray-800 font-medium">₹{selectedUser.totalInvestmentAmount}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Remaining</p>
+                      <p className="text-gray-800 font-medium">₹{calculateLeftInvestment(selectedUser.totalInvestmentAmount, installments)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Maturity</p>
+                      <p className="text-gray-800 font-medium">₹{selectedUser.maturityAmount}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-orange-500" />
+                    Account Dates
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs text-gray-500">Opened</p>
+                      <p className="text-gray-800">{format(parseISO(selectedUser.accountOpenDate), 'dd/MM/yyyy')}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Matures</p>
+                      <p className="text-gray-800">{format(parseISO(selectedUser.accountCloseDate), 'dd/MM/yyyy')}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <h3 className="text-2xl font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">Installments</h3>
+            {/* Installments Section */}
+            <div className="mb-4 flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-800">Installments</h3>
+              <div className="flex items-center text-sm text-gray-500">
+                <div className="flex items-center mr-3">
+                  <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
+                  <span>Paid</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 rounded-full bg-red-500 mr-1"></div>
+                  <span>Pending</span>
+                </div>
+              </div>
+            </div>
 
-            {/* Loading State for Installments */}
+            {/* Installments Table */}
             {loading && installments.length === 0 ? (
               <div className="flex justify-center items-center h-48">
                 <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : (
-              // Installments Table
-              <div className="overflow-x-auto max-h-[400px] custom-scrollbar">
-                <table className="min-w-full bg-white rounded-lg shadow-md border border-gray-200">
-                  <thead className="sticky top-0 bg-gray-100 z-10">
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white rounded-lg overflow-hidden shadow border border-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider rounded-tl-lg">Month/Year</th>
-                      <th className="py-3 px-4 text-right text-sm font-medium text-gray-600 uppercase tracking-wider">Amount</th>
-                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Status</th>
-                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Date</th>
-                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-600 uppercase tracking-wider rounded-tr-lg">Actions</th>
+                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month/Year</th>
+                      <th className="py-3 px-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-200">
                     {installments.length === 0 ? (
                       <tr>
-                        <td colSpan="4" className="text-center py-6 text-gray-500">No installments generated yet. Click "Generate Installments" above.</td>
+                        <td colSpan="5" className="text-center py-8 text-gray-500">
+                          No installments found. Click "Generate Installments" to create.
+                        </td>
                       </tr>
                     ) : (
                       installments.map((installment) => (
-                        <tr key={installment._id} className="border-b border-gray-200 last:border-b-0 hover:bg-blue-50 transition-colors">
-                          <td className="py-3 px-4 whitespace-nowrap text-gray-800">{installment.month} {installment.year}</td>
-                          <td className="py-3 px-4 text-right whitespace-nowrap text-gray-700">₹{installment.amount}</td>
+                        <tr key={installment._id} className="hover:bg-gray-50">
+                          <td className="py-3 px-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {installment.month} {installment.year}
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap text-sm text-right text-gray-500">
+                            ₹{installment.amount}
+                          </td>
                           <td className="py-3 px-4 whitespace-nowrap">
-                            <span className={`font-bold flex items-center ${installment.paid ? 'text-green-600' : 'text-red-600'}`}>
-                              {installment.paid ? <CheckCircle className="mr-1 h-4 w-4" /> : <XCircle className="mr-1 h-4 w-4" />}
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${installment.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
                               {installment.paid ? 'Paid' : 'Pending'}
                             </span>
                           </td>
-                          <td className="py-3 px-4 whitespace-nowrap text-gray-500 text-sm italic">
-                            {installment.updatedAt && new Date(installment.updatedAt).toLocaleString()}
+                          <td className="py-3 px-4 whitespace-nowrap text-sm text-gray-500">
+                            {installment.updatedAt && new Date(installment.updatedAt).toLocaleDateString()}
                           </td>
-                          <td className="py-3 px-4 whitespace-nowrap">
+                          <td className="py-3 px-4 whitespace-nowrap text-sm text-gray-500">
                             <button
                               onClick={() => handleInstallmentSelect(installment)}
                               disabled={loading}
-                              className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-1 px-3 rounded-md text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:scale-105"
+                              className="text-yellow-600 hover:text-yellow-800 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              Edit
+                              <Edit className="h-4 w-4" />
                             </button>
                           </td>
                         </tr>
@@ -866,59 +1137,59 @@ className="bg-blue-600 hover:bg-blue-700 mb-2 text-white font-bold py-2 px-6 rou
             </div>
           </div>
         )}
-{/* open for downkload excle file  */}
-{isOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-            <h2 className="text-xl font-semibold mb-4">Select Month & Year</h2>
+        {/* open for downkload excle file  */}
+        {isOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+              <h2 className="text-xl font-semibold mb-4">Select Month & Year</h2>
 
-            <div className="mb-3">
-              <label className="block text-sm font-medium">Month</label>
-              <select
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                className="mt-1 block w-full border border-gray-300 rounded p-2"
-              >
-                <option value="">-- Select Month --</option>
-                {[
-                  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                  "Jul", "Aug", "Sept", "Oct", "Nov", "Dec",
-                ].map((m, i) => (
-                  <option key={i} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
+              <div className="mb-3">
+                <label className="block text-sm font-medium">Month</label>
+                <select
+                  value={month}
+                  onChange={(e) => setMonth(e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded p-2"
+                >
+                  <option value="">-- Select Month --</option>
+                  {[
+                    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                    "Jul", "Aug", "Sept", "Oct", "Nov", "Dec",
+                  ].map((m, i) => (
+                    <option key={i} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Year</label>
-              <input
-                type="number"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                className="mt-1 block w-full border border-gray-300 rounded p-2"
-                placeholder="e.g. 2025"
-              />
-            </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium">Year</label>
+                <input
+                  type="number"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded p-2"
+                  placeholder="e.g. 2025"
+                />
+              </div>
 
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setIsOpen(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-full shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
-            
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto flex items-center justify-center"
-             
-              >
-                Submit
-              </button>
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-full shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
+
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto flex items-center justify-center"
+
+                >
+                  Submit
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
         {/* Snackbar for notifications */}
         {snackbar.open && (
           <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg text-white transition-all duration-300 ${snackbar.severity === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>

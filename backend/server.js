@@ -254,99 +254,358 @@ app.put('/api/installments/:id', async (req, res) => {
 
 // Add this route to your backend (server.js or routes file)
 // Add this route to your existing backend code
+
+// npm install date-fns
+
+// Install if not yet: npm install date-fns
+
 app.get('/api/users/:userId/full-report', async (req, res) => {
   try {
     const { userId } = req.params;
-    
-    // Validate userId format
+
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ error: 'Invalid user ID format' });
     }
 
-    // Get user details
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Get all installments for the user
-    const installments = await Installment.find({ userId: userId }).sort({ year: 1, month: 1 });
+    let installments = await Installment.find({ userId }).lean();
 
-    // Create workbook
+    // Sort months properly (jan-dec)
+    const monthOrder = {
+      January: 1, February: 2, March: 3, April: 4, May: 5, June: 6,
+      July: 7, August: 8, September: 9, October: 10, November: 11, December: 12
+    };
+    installments.sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return (monthOrder[a.month] || 13) - (monthOrder[b.month] || 13);
+    });
+
+    const totalInstallments = installments.length;
+    const paidInstallments = installments.filter(i => i.paid);
+    const paidInstallmentsCount = paidInstallments.length;
+
+    // 🧮 Correct Logic: leftInstallment = totalInvestmentAmount - sum of paid installments
+    const totalPaidAmount = paidInstallments.reduce((sum, inst) => sum + inst.amount, 0);
+    const leftInstallment = user.totalInvestmentAmount - totalPaidAmount;
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('User Report');
 
-    // Add user details section
-    worksheet.addRow(['User Details']).font = { bold: true, size: 14 };
-    worksheet.addRow(['First Name', user.firstName]);
-    worksheet.addRow(['Second Name', user.secondName || '']);
-    worksheet.addRow(['Account Number 1', user.accountNumber1]);
-    worksheet.addRow(['Account Number 2', user.accountNumber2 || '']);
-    worksheet.addRow(['CIF Number 1', user.cifNumber1]);
-    worksheet.addRow(['CIF Number 2', user.cifNumber2 || '']);
-    worksheet.addRow(['Mobile Number', user.mobileNumber]);
-    worksheet.addRow(['Nominee Name', user.nomineeName]);
-    worksheet.addRow(['Monthly Amount', user.monthlyAmount]);
-    worksheet.addRow(['Total Investment', user.totalInvestmentAmount]);
-    worksheet.addRow(['Left Investment', user.leftInvestmentAmount]);
-    worksheet.addRow(['Maturity Amount', user.maturityAmount]);
-    worksheet.addRow(['Account Open Date', user.accountOpenDate]);
-    worksheet.addRow(['Account Close Date', user.accountCloseDate]);
-    worksheet.addRow([]); // Empty row for spacing
+    // Set default row height for better spacing
+    worksheet.properties.defaultRowHeight = 20;
 
-    // Add installments section
-    worksheet.addRow(['Installments']).font = { bold: true, size: 14 };
-    const headerRow = worksheet.addRow([
-      'S.No', 'Month', 'Year', 'Amount', 'Status', 'Last Updated'
-    ]);
+    // Add company header with beautiful styling
+    const companyRow = worksheet.addRow(['INVESTMENT REPORT']);
+    worksheet.mergeCells('A1:F1');
+    companyRow.getCell(1).font = { 
+      bold: true, 
+      size: 18, 
+      color: { argb: 'FFFFFF' },
+      name: 'Calibri'
+    };
+    companyRow.getCell(1).alignment = { 
+      horizontal: 'center', 
+      vertical: 'middle' 
+    };
+    companyRow.getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '2E4A6B' } // Dark blue
+    };
+    companyRow.height = 35;
 
-    // Style headers
-    headerRow.eachCell((cell) => {
-      cell.font = { bold: true };
-      cell.fill = {
+    // Add spacing row
+    worksheet.addRow([]);
+
+    // User Details Header with beautiful styling
+    const userHeaderRow = worksheet.addRow(['USER DETAILS']);
+    worksheet.mergeCells(`A${userHeaderRow.number}:F${userHeaderRow.number}`);
+    userHeaderRow.getCell(1).font = { 
+      bold: true, 
+      size: 14, 
+      color: { argb: 'FFFFFF' },
+      name: 'Calibri'
+    };
+    userHeaderRow.getCell(1).alignment = { 
+      horizontal: 'center', 
+      vertical: 'middle' 
+    };
+    userHeaderRow.getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4A90A4' } // Medium blue
+    };
+    userHeaderRow.height = 28;
+
+    // User details with improved formatting
+    const details = [
+      ['First Name', user.firstName],
+      ['Second Name', user.secondName || 'N/A'],
+      ['Account Number 1', user.accountNumber1],
+      ['Account Number 2', user.accountNumber2 || 'N/A'],
+      ['CIF Number 1', user.cifNumber1],
+      ['CIF Number 2', user.cifNumber2 || 'N/A'],
+      ['Mobile Number', user.mobileNumber],
+      ['Nominee Name', user.nomineeName],
+      ['Monthly Amount', user.monthlyAmount],
+      ['Total Investment', user.totalInvestmentAmount],
+      ['Left Investment', user.leftInvestmentAmount],
+      ['Maturity Amount', user.maturityAmount],
+      ['Account Open Date', user.accountOpenDate],
+      ['Account Close Date', user.accountCloseDate],
+      ['Total Installments Count', totalInstallments],
+      ['Paid Installments Count', paidInstallmentsCount],
+      ['Total Paid Amount', totalPaidAmount],
+      ['Left Installment Amount', leftInstallment],
+    ];
+
+    let currentRow = worksheet.lastRow.number + 1;
+    details.forEach(detail => {
+      const row = worksheet.addRow([detail[0], detail[1]]);
+      
+      // Style the label column
+      row.getCell(1).font = { 
+        bold: true, 
+        color: { argb: '2E4A6B' },
+        name: 'Calibri'
+      };
+      row.getCell(1).fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'D3D3D3' }
+        fgColor: { argb: 'F0F8FF' } // Light blue
       };
-      cell.border = {
-        top: { style: 'thin' },
-        left: { style: 'thin' },
-        bottom: { style: 'thin' },
-        right: { style: 'thin' }
+      row.getCell(1).alignment = { 
+        horizontal: 'left', 
+        vertical: 'middle',
+        indent: 1
       };
-    });
-
-    // Add installment data
-    installments.forEach((installment, index) => {
-      const row = worksheet.addRow([
-        index + 1,
-        installment.month,
-        installment.year,
-        installment.amount,
-        installment.paid ? 'Paid' : 'Pending',
-        installment.updatedAt ? format(new Date(installment.updatedAt), 'dd/MM/yyyy HH:mm') : ''
-      ]);
       
-      // Format amount column
-      row.getCell(4).numFmt = '#,##0.00';
-    });
+      // Style the value column
+      row.getCell(2).font = { 
+        name: 'Calibri',
+        color: { argb: '333333' }
+      };
+      row.getCell(2).alignment = { 
+        horizontal: 'left', 
+        vertical: 'middle',
+        indent: 1
+      };
+      
+      // Add borders
+      row.eachCell((cell, colNumber) => {
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'CCCCCC' } },
+          left: { style: 'thin', color: { argb: 'CCCCCC' } },
+          bottom: { style: 'thin', color: { argb: 'CCCCCC' } },
+          right: { style: 'thin', color: { argb: 'CCCCCC' } }
+        };
+      });
 
-    // Auto-fit columns
-    worksheet.columns.forEach(column => {
-      if (column.values) {
-        const lengths = column.values.map(v => v ? v.toString().length : 0);
-        const maxLength = Math.max(...lengths.filter(v => typeof v === 'number'));
-        column.width = maxLength + 5;
+      // Format currency values
+      if (detail[0].toLowerCase().includes('amount') || detail[0].toLowerCase().includes('investment')) {
+        row.getCell(2).numFmt = '₹#,##0.00';
       }
     });
 
-    // Set response headers
+    // Add spacing rows
+    worksheet.addRow([]);
+    worksheet.addRow([]);
+
+    // Installments Header with beautiful styling
+    const installmentsHeaderRow = worksheet.addRow(['INSTALLMENT DETAILS']);
+    worksheet.mergeCells(`A${installmentsHeaderRow.number}:F${installmentsHeaderRow.number}`);
+    installmentsHeaderRow.getCell(1).font = { 
+      bold: true, 
+      size: 14, 
+      color: { argb: 'FFFFFF' },
+      name: 'Calibri'
+    };
+    installmentsHeaderRow.getCell(1).alignment = { 
+      horizontal: 'center', 
+      vertical: 'middle' 
+    };
+    installmentsHeaderRow.getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4A90A4' } // Medium blue
+    };
+    installmentsHeaderRow.height = 28;
+
+    // Table headers with beautiful styling
+    const headerRow = worksheet.addRow([
+      'S.No', 'Month', 'Year', 'Amount (₹)', 'Status', 'Last Updated'
+    ]);
+
+    headerRow.eachCell((cell) => {
+      cell.font = { 
+        bold: true, 
+        color: { argb: 'FFFFFF' },
+        name: 'Calibri',
+        size: 11
+      };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '2E4A6B' } // Dark blue
+      };
+      cell.alignment = { 
+        horizontal: 'center', 
+        vertical: 'middle' 
+      };
+      cell.border = {
+        top: { style: 'thin', color: { argb: '000000' } },
+        left: { style: 'thin', color: { argb: '000000' } },
+        bottom: { style: 'thin', color: { argb: '000000' } },
+        right: { style: 'thin', color: { argb: '000000' } }
+      };
+    });
+    headerRow.height = 25;
+
+    // Installment data rows with alternating colors
+    installments.forEach((inst, i) => {
+      const row = worksheet.addRow([
+        i + 1,
+        inst.month,
+        inst.year,
+        inst.amount,
+        inst.paid ? 'Paid' : 'Pending',
+        inst.updatedAt ? format(new Date(inst.updatedAt), 'dd/MM/yyyy HH:mm') : 'N/A'
+      ]);
+
+      // Alternate row colors
+      const isEvenRow = (i + 1) % 2 === 0;
+      const rowColor = isEvenRow ? 'F8F9FA' : 'FFFFFF';
+
+      row.eachCell((cell, colNumber) => {
+        cell.font = { 
+          name: 'Calibri',
+          color: { argb: '333333' }
+        };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: rowColor }
+        };
+        cell.alignment = { 
+          horizontal: 'center', 
+          vertical: 'middle' 
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'DDDDDD' } },
+          left: { style: 'thin', color: { argb: 'DDDDDD' } },
+          bottom: { style: 'thin', color: { argb: 'DDDDDD' } },
+          right: { style: 'thin', color: { argb: 'DDDDDD' } }
+        };
+      });
+
+      // Format amount column
+      row.getCell(4).numFmt = '₹#,##0.00';
+      
+      // Style status column based on paid/pending
+      const statusCell = row.getCell(5);
+      if (inst.paid) {
+        statusCell.font = { 
+          bold: true, 
+          color: { argb: 'FFFFFF' },
+          name: 'Calibri'
+        };
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: '28A745' } // Green for paid
+        };
+      } else {
+        statusCell.font = { 
+          bold: true, 
+          color: { argb: 'FFFFFF' },
+          name: 'Calibri'
+        };
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'DC3545' } // Red for pending
+        };
+      }
+    });
+
+    // Auto-fit column widths with minimum widths
+    const columnWidths = [8, 12, 8, 15, 12, 20]; // Minimum widths
+    worksheet.columns.forEach((column, index) => {
+      let maxLength = columnWidths[index] || 10;
+      column.eachCell({ includeEmpty: true }, cell => {
+        const columnLength = cell.value ? cell.value.toString().length : 0;
+        if (columnLength > maxLength) {
+          maxLength = columnLength;
+        }
+      });
+      column.width = Math.min(maxLength + 2, 25); // Cap maximum width
+    });
+
+    // Add summary footer
+    const footerStartRow = worksheet.lastRow.number + 2;
+    const summaryRow = worksheet.addRow(['SUMMARY']);
+    worksheet.mergeCells(`A${summaryRow.number}:F${summaryRow.number}`);
+    summaryRow.getCell(1).font = { 
+      bold: true, 
+      size: 12, 
+      color: { argb: 'FFFFFF' },
+      name: 'Calibri'
+    };
+    summaryRow.getCell(1).alignment = { 
+      horizontal: 'center', 
+      vertical: 'middle' 
+    };
+    summaryRow.getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '6C757D' } // Gray
+    };
+    summaryRow.height = 25;
+
+    const summaryDetails = [
+      ['Total Installments:', totalInstallments],
+      ['Paid Installments:', paidInstallmentsCount],
+      ['Pending Installments:', totalInstallments - paidInstallmentsCount],
+      ['Total Paid Amount:', `₹${totalPaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+      ['Remaining Amount:', `₹${leftInstallment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`]
+    ];
+
+    summaryDetails.forEach(detail => {
+      const row = worksheet.addRow([detail[0], detail[1]]);
+      row.getCell(1).font = { 
+        bold: true, 
+        color: { argb: '2E4A6B' },
+        name: 'Calibri'
+      };
+      row.getCell(2).font = { 
+        bold: true,
+        color: { argb: '333333' },
+        name: 'Calibri'
+      };
+      row.eachCell((cell) => {
+        cell.alignment = { 
+          horizontal: 'center', 
+          vertical: 'middle' 
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'CCCCCC' } },
+          left: { style: 'thin', color: { argb: 'CCCCCC' } },
+          bottom: { style: 'thin', color: { argb: 'CCCCCC' } },
+          right: { style: 'thin', color: { argb: 'CCCCCC' } }
+        };
+      });
+    });
+
+    const fileName = `UserReport_${user.firstName}_${user.accountNumber1}_${Date.now()}.xlsx`;
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    const fileName = `UserReport_${user.firstName}_${user.accountNumber1}_${new Date().getTime()}.xlsx`;
     res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
 
-    // Send the workbook
-    await workbook.xlsx.write(res);
+    await workbook.xlsx.write(res); // send workbook to response
     res.end();
 
   } catch (err) {
@@ -354,6 +613,10 @@ app.get('/api/users/:userId/full-report', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate report' });
   }
 });
+
+// Search users by name (firstName or secondName)
+
+
 
 // Start server
 const PORT = process.env.PORT || 5000;
