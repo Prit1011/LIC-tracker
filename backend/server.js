@@ -343,7 +343,7 @@ app.put('/api/installments/:id', async (req, res) => {
 
 app.get('/api/users/:userId/full-report', async (req, res) => {
   try {
-    const { userId } = req.params;
+     const { userId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ error: 'Invalid user ID format' });
@@ -356,7 +356,7 @@ app.get('/api/users/:userId/full-report', async (req, res) => {
 
     let installments = await Installment.find({ userId }).lean();
 
-    // Sort months properly (jan-dec)
+    // Sort months properly (Jan–Dec)
     const monthOrder = {
       January: 1, February: 2, March: 3, April: 4, May: 5, June: 6,
       July: 7, August: 8, September: 9, October: 10, November: 11, December: 12
@@ -370,14 +370,15 @@ app.get('/api/users/:userId/full-report', async (req, res) => {
     const paidInstallments = installments.filter(i => i.paid);
     const paidInstallmentsCount = paidInstallments.length;
 
-    // 🧮 Correct Logic: leftInstallment = totalInvestmentAmount - sum of paid installments
+    // ✅ Correct calculation: totalInvestmentAmount - sum of paid installments
     const totalPaidAmount = paidInstallments.reduce((sum, inst) => sum + inst.amount, 0);
     const leftInstallment = user.totalInvestmentAmount - totalPaidAmount;
 
+    // ✅ Ensure leftInvestmentAmount in user object is also updated for display
+    user.leftInvestmentAmount = leftInstallment;
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('User Report');
-
-    // Set default row height for better spacing
     worksheet.properties.defaultRowHeight = 20;
 
     // Add company header with beautiful styling
@@ -436,6 +437,7 @@ app.get('/api/users/:userId/full-report', async (req, res) => {
       ['Monthly Amount', user.monthlyAmount],
       ['Total Investment', user.totalInvestmentAmount],
       ['Left Investment', user.leftInvestmentAmount],
+      ['Account Type', user.accountType],
       ['Maturity Amount', user.maturityAmount],
       ['Account Open Date', user.accountOpenDate],
       ['Account Close Date', user.accountCloseDate],

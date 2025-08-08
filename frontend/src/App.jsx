@@ -15,13 +15,14 @@ import {
   Edit,
   UserPen,
   UserRoundPen,
-  UserRoundX
+  UserRoundX,
+  Snowflake
 } from 'lucide-react'; // Importing icons
 import InstallBtn from './components/InstallBtn';
 
 
 // Base URL for your API
-const API_URL = 'https://lic-tracker.onrender.com/api';
+const API_URL = 'http://localhost:5000/api';
 
 // Main App Component
 const App = () => {
@@ -85,7 +86,7 @@ const App = () => {
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
-      showSnackbar('Failed to fetch users', 'error');
+      showSnackbar('Failed to fetch users ', 'error');
     } finally {
       setLoading(false);
     }
@@ -276,6 +277,7 @@ const App = () => {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Download failed");
+        showSnackbar('sorry for inttruption', error);
       }
 
       const blob = await response.blob();
@@ -288,6 +290,7 @@ const App = () => {
       document.body.appendChild(a);
       a.click();
       a.remove();
+      showSnackbar('Downloaded succesfully', 'success');
 
     } catch (err) {
       console.error("Download error:", err);
@@ -319,7 +322,7 @@ const App = () => {
           return status >= 200 && status < 300; // Only resolve for 2xx status codes
         }
       });
-
+      showSnackbar('Downloaded succesfully', 'success');
       // Handle potential errors in the response
       if (response.headers['content-type'].includes('text/html')) {
         // This means we got an HTML error page instead of the Excel file
@@ -780,17 +783,13 @@ const App = () => {
             {/* Action Buttons - Improved responsive layout */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-200 pb-6 gap-4">
               <div className="grid grid-cols-2 sm:flex sm:space-x-3 gap-3 w-full sm:w-auto">
+
                 <button
-                  onClick={() => downloadFullReport(selectedUser._id)}
-                  disabled={isLoading}
-                  className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-full shadow transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base w-full"
+                  onClick={() => setCurrentPage('userList')}
+                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-full shadow transition-all duration-200 hover:scale-[1.02] flex items-center justify-center text-sm sm:text-base w-full sm:w-auto"
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <FileDown className="h-4 w-4 mr-2" />
-                  )}
-                  Full Report
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
                 </button>
                 <button
                   onClick={() => generateInstallments()}
@@ -805,11 +804,16 @@ const App = () => {
                   Generate
                 </button>
                 <button
-                  onClick={() => setCurrentPage('userList')}
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-full shadow transition-all duration-200 hover:scale-[1.02] flex items-center justify-center text-sm sm:text-base w-full sm:w-auto"
+                  onClick={() => downloadFullReport(selectedUser._id)}
+                  disabled={isLoading}
+                  className="bg-green-600 hover:bg-green-700 col-span-2 text-white font-medium py-2 px-4 rounded-full shadow transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base w-full"
                 >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileDown className="h-4 w-4 mr-2" />
+                  )}
+                  Full Report
                 </button>
               </div>
             </div>
