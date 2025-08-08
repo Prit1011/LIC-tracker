@@ -19,6 +19,7 @@ import {
   Snowflake
 } from 'lucide-react'; // Importing icons
 import InstallBtn from './components/InstallBtn';
+import "./index.css"
 
 
 // Base URL for your API
@@ -543,11 +544,31 @@ const App = () => {
 
             {/* Enhanced Loading State this is removed by me && users.length === 0  */}
             {loading ? (
-              <div className="flex flex-col justify-center items-center h-64 space-y-4">
-                <div className="relative">
-                  <div className="w-16 h-16 border-4 border-blue-200 rounded-full"></div>
-                  <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+              <div className="flex flex-col justify-center items-center h-64 space-y-8">
+                {/* Quantum Dot Dance Animation */}
+                <div className="relative flex items-center justify-center h-20 w-64">
+                  {/* Ripple Background Effect (Subtle) */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-24 h-24 rounded-full bg-blue-100 opacity-10 animate-ripple"></div>
+                  </div>
+
+                  {/* 5 Dancing Dots */}
+                  {['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFBE0B', '#A05195'].map((color, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-6 h-6 rounded-full opacity-90"
+                      style={{
+                        backgroundColor: color,
+                        left: `${20 + i * 15}%`,
+                        animation: `quantumBounce 1.8s infinite ease-in-out`,
+                        animationDelay: `${i * 0.1}s`,
+                        filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.1))',
+                      }}
+                    />
+                  ))}
                 </div>
+
+                {/* Original Text (Unchanged) */}
                 <div className="text-center">
                   <p className="text-gray-700 font-semibold">Loading users...</p>
                   <p className="text-gray-500 text-sm">Please wait a moment</p>
