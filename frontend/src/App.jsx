@@ -160,8 +160,6 @@ const App = () => {
     return totalInvestmentAmount - totalPaid;
   };
 
-
-
   /**
    * Updates an existing installment by sending `installmentForm` data to the backend API.
    * Refreshes the installments list for the current user after successful update.
@@ -457,13 +455,6 @@ const App = () => {
       showSnackbar(error.response?.data?.error || "Failed to delete user", "error");
     }
   };
-
-
-
-
-
-
-
 
   return (
     // Main container with gradient background and responsive padding
@@ -1437,7 +1428,6 @@ const App = () => {
             </div>
           </div>
         )}
-
         {/* Edit Installment Modal */}
         {showEditInstallmentModal && installmentForm && (
           <div className="fixed inset-0 bg-black bg-black/60 flex items-center justify-center z-50 p-4"> {/* Changed opacity to 90 */}
@@ -1525,7 +1515,7 @@ const App = () => {
                   <option value="">-- Select Month --</option>
                   {[
                     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sept", "Oct", "Nov", "Dec",
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
                   ].map((m, i) => (
                     <option key={i} value={m}>{m}</option>
                   ))}
