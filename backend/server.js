@@ -220,7 +220,7 @@ app.get('/api/users/:id', async (req, res) => {
       const allowedFields = [
         'firstName', 'secondName', 'accountNumber1', 'accountNumber2',
         'cifNumber1', 'cifNumber2', 'mobileNumber', 'nomineeName',
-        'monthlyAmount', 'totalInvestmentAmount', 'leftInvestmentAmount',
+        'monthlyAmount', 'totalInvestmentAmount', 'accountType',
         'maturityAmount', 'accountOpenDate', 'accountCloseDate'
       ];
 
