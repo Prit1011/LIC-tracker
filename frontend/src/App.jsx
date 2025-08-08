@@ -21,7 +21,7 @@ import InstallBtn from './components/InstallBtn';
 
 
 // Base URL for your API
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://lic-tracker.onrender.com/api';
 
 // Main App Component
 const App = () => {
@@ -67,6 +67,8 @@ const App = () => {
   // State for global loading indicators
   const [loading, setLoading] = useState(false);
   const [showEditUserModel, setShowEditUserModel] = useState(false);
+  const [userFilter, setUserFilter] = useState('all');
+
 
   // --- API Calls ---
 
@@ -74,10 +76,12 @@ const App = () => {
    * Fetches all users from the backend API.
    * Updates the `users` state and manages loading/error states.
    */
-  const fetchUsers = async () => {
+  const fetchUsers = async (filter = 'all') => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/users`);
+      const response = await axios.get(`${API_URL}/users`, {
+        params: { filter }
+      });
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -86,6 +90,11 @@ const App = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchUsers(userFilter);
+  }, [userFilter]);
+
 
   /**
    * Fetches installments for a specific user from the backend API.
@@ -248,9 +257,7 @@ const App = () => {
   // --- Effects ---
 
   // Fetch users on initial component mount
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+
 
   const handleSubmit = async () => {
     console.log("Month:", month);
@@ -460,6 +467,7 @@ const App = () => {
     }
   };
 
+
   return (
     // Main container with gradient background and responsive padding
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-200 text-gray-800 p-2 font-sans antialiased">
@@ -496,6 +504,22 @@ const App = () => {
                   <span>Add New User</span>
                 </button>
               </div>
+              <div className="flex items-center space-x-3">
+                <label htmlFor="userFilter" className="text-gray-700 font-semibold">
+                  Sort users by:
+                </label>
+                <select
+                  id="userFilter"
+                  value={userFilter}
+                  onChange={(e) => setUserFilter(e.target.value)} // ✅ removed comma operator
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="all">All Users</option>
+                  <option value="After 15 days">After 15 Days</option>
+                  <option value="Before 15 days">Before 15 Days</option>
+                </select>
+              </div>
+
             </div>
 
             {/* Enhanced Loading State */}

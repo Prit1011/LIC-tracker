@@ -68,12 +68,23 @@ app.post('/api/users', async (req, res) => {
 // Get all users
 app.get('/api/users', async (req, res) => {
   try {
-    const users = await User.find({});
+    const { filter } = req.query;
+    let query = {};
+
+    if (filter === "After 15 days") {
+      query.accountType = "After 15 days";
+    } else if (filter === "Before 15 days") {
+      query.accountType = "Before 15 days";
+    }
+
+    const users = await User.find(query);
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 app.get('/api/installments/download', async (req, res) => {
   try {
