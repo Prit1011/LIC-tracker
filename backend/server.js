@@ -201,6 +201,56 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
+  // Update selected user's profile
+  app.put('/api/users/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check for valid MongoDB ObjectId
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: 'Invalid user ID format' });
+      }
+      //  console.log("firstname:", req.body.firstName)
+
+      // Optional: Validate body fields if needed (you can add more validation)
+      const allowedFields = [
+        'firstName', 'secondName', 'accountNumber1', 'accountNumber2',
+        'cifNumber1', 'cifNumber2', 'mobileNumber', 'nomineeName',
+        'monthlyAmount', 'totalInvestmentAmount', 'leftInvestmentAmount',
+        'maturityAmount', 'accountOpenDate', 'accountCloseDate'
+      ];
+
+      const updates = {};
+      for (const key of allowedFields) {
+        if (req.body[key] !== undefined) {
+          updates[key] = req.body[key];
+        }
+      }
+
+      // Prevent empty update
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: 'No valid fields provided for update' });
+      }
+
+      // Update user
+      const updatedUser = await User.findByIdAndUpdate(id, { $set: updates }, { new: true });
+
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json({
+        message: 'User profile updated successfully',
+        user: updatedUser
+      });
+
+    } catch (err) {
+      console.error('Error updating user:', err);
+      res.status(500).json({ error: 'Server error while updating user' });
+    }
+  });
+
+
 // Generate Monthly Installments
 app.post('/api/installments/generate/:userId', async (req, res) => {
   try {
@@ -274,12 +324,7 @@ app.put('/api/installments/:id', async (req, res) => {
   }
 });
 
-// Add this route to your backend (server.js or routes file)
-// Add this route to your existing backend code
 
-// npm install date-fns
-
-// Install if not yet: npm install date-fns
 
 app.get('/api/users/:userId/full-report', async (req, res) => {
   try {
@@ -636,7 +681,44 @@ app.get('/api/users/:userId/full-report', async (req, res) => {
   }
 });
 
-// Search users by name (firstName or secondName)
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check for valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+
+    // Check if user exists
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Delete all installments associated with this user first
+    const installmentDeleteResult = await Installment.deleteMany({ userId: id });
+    
+    // Delete the user
+    const deletedUser = await User.findByIdAndDelete(id);
+
+    res.json({
+      message: 'User and associated installments deleted successfully',
+      deletedUser: {
+        id: deletedUser._id,
+        firstName: deletedUser.firstName,
+        secondName: deletedUser.secondName,
+        accountNumber1: deletedUser.accountNumber1
+      },
+      deletedInstallments: installmentDeleteResult.deletedCount
+    });
+
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    res.status(500).json({ error: 'Server error while deleting user' });
+  }
+});
+
 
 
 

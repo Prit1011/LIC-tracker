@@ -12,7 +12,10 @@ import {
   TrendingUp,
   Loader2,
   ArrowLeft,
-  Edit
+  Edit,
+  UserPen,
+  UserRoundPen,
+  UserRoundX
 } from 'lucide-react'; // Importing icons
 import InstallBtn from './components/InstallBtn';
 
@@ -39,6 +42,7 @@ const App = () => {
   const [year, setYear] = useState("");
   // State for the form data when adding a new user
   const [userForm, setUserForm] = useState({
+    userId: '', // ✅ Added userId
     firstName: '',
     secondName: '',
     accountNumber1: '',
@@ -47,10 +51,10 @@ const App = () => {
     cifNumber2: '',
     mobileNumber: '',
     nomineeName: '',
-    monthlyAmount: 0,
-    totalInvestmentAmount: 0,
-    leftInvestmentAmount: 0,
-    maturityAmount: 0,
+    monthlyAmount: '',
+    totalInvestmentAmount: '',
+    leftInvestmentAmount: '',
+    maturityAmount: ' ',
     // Format dates for HTML input type="date"
     accountOpenDate: format(new Date(), 'yyyy-MM-dd'),
     accountCloseDate: format(new Date(new Date().setFullYear(new Date().getFullYear() + 1)), 'yyyy-MM-dd')
@@ -61,6 +65,7 @@ const App = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   // State for global loading indicators
   const [loading, setLoading] = useState(false);
+  const [showEditUserModel, setShowEditUserModel] = useState(false);
 
   // --- API Calls ---
 
@@ -360,6 +365,104 @@ const App = () => {
     }
   };
 
+  // Function to handle editing a user
+  const handleEditUser = (e, user) => {
+    e.stopPropagation();
+    // console.log("Editing user:", user);
+    setShowEditUserModel(true);
+
+    // Prefill the form with selected user data
+    setUserForm({
+      userId: user._id, // ✅ Set userId here
+      firstName: user.firstName || "",
+      secondName: user.secondName || "",
+      accountNumber1: user.accountNumber1 || "",
+      accountNumber2: user.accountNumber2 || "",
+      cifNumber1: user.cifNumber1 || "",
+      cifNumber2: user.cifNumber2 || "",
+      mobileNumber: user.mobileNumber || "",
+      nomineeName: user.nomineeName || "",
+      monthlyAmount: user.monthlyAmount || "",
+      totalInvestmentAmount: user.totalInvestmentAmount || "",
+      leftInvestmentAmount: user.leftInvestmentAmount || 0,
+      maturityAmount: user.maturityAmount || "",
+      accountOpenDate: user.accountOpenDate
+        ? new Date(user.accountOpenDate).toISOString().split("T")[0]
+        : "",
+      accountCloseDate: user.accountCloseDate
+        ? new Date(user.accountCloseDate).toISOString().split("T")[0]
+        : "",
+    });
+
+    // Show modal
+
+  };
+
+  const updateUser = async () => {
+    if (!userForm.userId) {
+      showSnackbar('User ID is missing', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await axios.put(
+        `${API_URL}/users/${userForm.userId}`,
+        userForm
+      );
+
+      showSnackbar(response.data.message || 'User updated successfully', 'success');
+      setShowEditUserModel(false);
+
+      // Update the users state with the updated user
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user._id === userForm.userId ? { ...user, ...userForm } : user
+        )
+      );
+
+
+
+      // Close the modal
+      setSelectedUser(null);
+
+    } catch (error) {
+      console.error('Error updating user:', error);
+      const errorMessage =
+        error.response?.data?.error || 'Failed to update user';
+      showSnackbar(errorMessage, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // DELETE USER HANDLER
+  const handleDeleteUser = async (event, userId, firstName) => {
+    // Stop click from reaching parent onClick
+    event.stopPropagation();
+
+    const isConfirmed = window.confirm(`Are you sure you want to delete user "${firstName}"?`);
+    if (!isConfirmed) return;
+
+    try {
+      console.log(`🗑 Deleting user with ID: ${userId} (${firstName})`);
+      const response = await axios.delete(`${API_URL}/users/${userId}`);
+      console.log("✅ Delete Response:", response.data);
+
+      showSnackbar(response.data.message || "User deleted successfully", "success");
+      setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
+
+    } catch (error) {
+      console.error("❌ Error deleting user:", error);
+      showSnackbar(error.response?.data?.error || "Failed to delete user", "error");
+    }
+  };
+
+
+
+
+
+
 
 
   return (
@@ -399,7 +502,6 @@ const App = () => {
                 </button>
               </div>
             </div>
-
 
             {/* Enhanced Loading State */}
             {loading && users.length === 0 ? (
@@ -455,12 +557,13 @@ const App = () => {
                           <th className="py-4 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Account Number</th>
                           <th className="py-4 px-6 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Monthly Amount</th>
                           <th className="py-4 px-6 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Total Investment</th>
+                          <th className="py-4 px-6 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {users.length === 0 ? (
                           <tr>
-                            <td colSpan="4" className="text-center py-12">
+                            <td colSpan="5" className="text-center py-12">
                               <div className="flex flex-col items-center space-y-4">
                                 <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center">
                                   <User className="h-8 w-8 text-gray-400" />
@@ -503,6 +606,20 @@ const App = () => {
                               <td className="py-5 px-6 text-right whitespace-nowrap">
                                 <div className="text-lg font-bold text-blue-600">₹{user.totalInvestmentAmount.toLocaleString()}</div>
                                 <div className="text-xs text-gray-500">total amount</div>
+                              </td>
+                              <td className="py-5 px-6 text-right whitespace-nowrap">
+                                <button
+                                  onClick={(e) => handleEditUser(e, user)}
+                                  className="bg-cyan-500 hover:bg-yellow-600 text-white mx-3 px-3 py-1 rounded-lg text-sm shadow-sm"
+                                >
+                                  <UserRoundPen />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteUser(e, user._id, user.firstName)}
+                                  className="bg-red-600 hover:bg-red-400 text-white px-3 py-1 rounded-lg text-sm shadow-sm"
+                                >
+                                  <UserRoundX />
+                                </button>
                               </td>
                             </tr>
                           ))
@@ -570,13 +687,25 @@ const App = () => {
                               </div>
                             </div>
 
-                            <div className="mt-4 pt-3 border-t border-gray-100">
+                            <div className="mt-4 flex justify-between items-center border-t border-gray-100 pt-3">
                               <div className="flex items-center justify-center text-sm text-blue-600 font-medium">
                                 <span>Tap to view details</span>
                                 <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                                 </svg>
                               </div>
+                              <button
+                                onClick={(e) => handleEditUser(e, user)}
+                                className="bg-cyan-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm shadow-sm"
+                              >
+                                <UserRoundPen />
+                              </button>
+                              <button
+                                onClick={(e) => handleDeleteUser(e, user._id, user.firstName)}
+                                className="bg-red-600 hover:bg-red-400 text-white px-3 py-1 rounded-lg text-sm shadow-sm"
+                              >
+                                <UserRoundX />
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -588,6 +717,7 @@ const App = () => {
             )}
           </div>
         )}
+
 
         {/* User Details Page */}
         {currentPage === 'userDetails' && selectedUser && (
@@ -1040,6 +1170,248 @@ const App = () => {
                   <button
                     type="button"
                     onClick={() => setShowAddUserModal(false)}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-full shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 flex items-center justify-center"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Saving...
+                      </span>
+                    ) : (
+                      <>
+                        <User className="mr-2 h-5 w-5" /> Save User
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showEditUserModel && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"> {/* Changed opacity to 90 */}
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 md:p-8 relative text-gray-900 max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-4">Add New User</h2>
+              <form onSubmit={(e) => { e.preventDefault(); updateUser(); }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div className="relative">
+                    <label htmlFor="firstName" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">First Name</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <User className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="firstName"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.firstName}
+                        onChange={(e) => setUserForm({ ...userForm, firstName: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="secondName" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Second Name</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <User className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="secondName"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.secondName}
+                        onChange={(e) => setUserForm({ ...userForm, secondName: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="accountNumber1" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Number 1</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <CreditCard className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="accountNumber1"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.accountNumber1}
+                        onChange={(e) => setUserForm({ ...userForm, accountNumber1: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="accountNumber2" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Number 2 (Optional)</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <CreditCard className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="accountNumber2"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.accountNumber2}
+                        onChange={(e) => setUserForm({ ...userForm, accountNumber2: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="cifNumber1" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">CIF Number 1</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <FileText className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="cifNumber1"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.cifNumber1}
+                        onChange={(e) => setUserForm({ ...userForm, cifNumber1: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="cifNumber2" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">CIF Number 2 (Optional)</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <FileText className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="cifNumber2"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.cifNumber2}
+                        onChange={(e) => setUserForm({ ...userForm, cifNumber2: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="mobileNumber" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Mobile Number</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Phone className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="mobileNumber"
+                        type="tel"
+                        placeholder=" "
+                        value={userForm.mobileNumber}
+                        onChange={(e) => setUserForm({ ...userForm, mobileNumber: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="nomineeName" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Nominee Name</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Users className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="nomineeName"
+                        type="text"
+                        placeholder=" "
+                        value={userForm.nomineeName}
+                        onChange={(e) => setUserForm({ ...userForm, nomineeName: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="monthlyAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Monthly Amount</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <DollarSign className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="monthlyAmount"
+                        type="number"
+                        placeholder=" "
+                        value={userForm.monthlyAmount}
+                        onChange={(e) => setUserForm({ ...userForm, monthlyAmount: Number(e.target.value) })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="totalInvestmentAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Total Investment Amount</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <DollarSign className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="totalInvestmentAmount"
+                        type="number"
+                        placeholder=" "
+                        value={userForm.totalInvestmentAmount}
+                        onChange={(e) => setUserForm({ ...userForm, totalInvestmentAmount: Number(e.target.value) })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="leftInvestmentAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Left Investment Amount</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <DollarSign className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="leftInvestmentAmount"
+                        type="number"
+                        placeholder=" "
+                        value={userForm.leftInvestmentAmount}
+                        onChange={(e) => setUserForm({ ...userForm, leftInvestmentAmount: Number(e.target.value) })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="maturityAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Maturity Amount</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Banknote className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="maturityAmount"
+                        type="number"
+                        placeholder=" "
+                        value={userForm.maturityAmount}
+                        onChange={(e) => setUserForm({ ...userForm, maturityAmount: Number(e.target.value) })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="accountOpenDate" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Open Date</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Calendar className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="accountOpenDate"
+                        type="date"
+                        value={userForm.accountOpenDate}
+                        onChange={(e) => setUserForm({ ...userForm, accountOpenDate: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="accountCloseDate" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Close Date</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+                      <Calendar className="absolute left-3 text-gray-400 h-5 w-5" />
+                      <input
+                        id="accountCloseDate"
+                        type="date"
+                        value={userForm.accountCloseDate}
+                        onChange={(e) => setUserForm({ ...userForm, accountCloseDate: e.target.value })}
+                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditUserModel(false)}
                     className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-full shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
                   >
                     Cancel
