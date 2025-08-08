@@ -541,8 +541,8 @@ const App = () => {
 
             </div>
 
-            {/* Enhanced Loading State */}
-            {loading && users.length === 0 ? (
+            {/* Enhanced Loading State this is removed by me && users.length === 0  */}
+            {loading ? (
               <div className="flex flex-col justify-center items-center h-64 space-y-4">
                 <div className="relative">
                   <div className="w-16 h-16 border-4 border-blue-200 rounded-full"></div>
