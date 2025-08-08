@@ -69,6 +69,7 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [showEditUserModel, setShowEditUserModel] = useState(false);
   const [userFilter, setUserFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
 
   // --- API Calls ---
@@ -77,24 +78,29 @@ const App = () => {
    * Fetches all users from the backend API.
    * Updates the `users` state and manages loading/error states.
    */
-  const fetchUsers = async (filter = 'all') => {
-    setLoading(true);
+  const fetchUsers = async (filter = 'all', search = '') => {
+    setIsLoading(true);
     try {
       const response = await axios.get(`${API_URL}/users`, {
-        params: { filter }
+        params: { filter, search }
       });
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
-      showSnackbar('Failed to fetch users ', 'error');
+      showSnackbar('Failed to fetch users', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch when filter OR search changes
   useEffect(() => {
-    fetchUsers(userFilter);
-  }, [userFilter]);
+    const delayDebounce = setTimeout(() => {
+      fetchUsers(userFilter, searchTerm);
+    }, 300); // debounce for smooth typing
+
+    return () => clearTimeout(delayDebounce);
+  }, [userFilter, searchTerm]);
 
 
   /**
@@ -522,6 +528,13 @@ const App = () => {
                   <option value="Before 15 days">Before 15 Days</option>
                 </select>
               </div>
+              <input
+                type="text"
+                placeholder="Search by name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none w-full sm:w-64"
+              />
 
             </div>
 

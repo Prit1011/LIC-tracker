@@ -68,13 +68,22 @@ app.post('/api/users', async (req, res) => {
 // Get all users
 app.get('/api/users', async (req, res) => {
   try {
-    const { filter } = req.query;
+    const { filter, search } = req.query;
     let query = {};
 
+    // Apply filter
     if (filter === "After 15 days") {
       query.accountType = "After 15 days";
     } else if (filter === "Before 15 days") {
       query.accountType = "Before 15 days";
+    }
+
+    // Apply search by name (first or second)
+    if (search && search.trim() !== "") {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { secondName: { $regex: search, $options: 'i' } }
+      ];
     }
 
     const users = await User.find(query);
@@ -83,6 +92,7 @@ app.get('/api/users', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 
