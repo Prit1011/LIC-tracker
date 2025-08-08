@@ -154,6 +154,9 @@ const App = () => {
       // Convert date strings to ISO format for backend
       const payload = {
         ...userForm,
+        monthlyAmount: Number(userForm.monthlyAmount),
+        totalInvestmentAmount: Number(userForm.totalInvestmentAmount),
+        maturityAmount: Number(userForm.maturityAmount),
         accountType: userForm.accountType || 'After 15 days', // ✅ ensure always present
         accountOpenDate: new Date(userForm.accountOpenDate).toISOString(),
         accountCloseDate: new Date(userForm.accountCloseDate).toISOString(),
@@ -1125,7 +1128,7 @@ const App = () => {
                         id="monthlyAmount"
                         type="number"
                         placeholder=" "
-                        value={userForm.monthlyAmount}
+                        value={userForm.monthlyAmount || ""}
                         onChange={(e) => setUserForm({ ...userForm, monthlyAmount: Number(e.target.value) })}
                         className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                         required
@@ -1140,7 +1143,7 @@ const App = () => {
                         id="totalInvestmentAmount"
                         type="number"
                         placeholder=" "
-                        value={userForm.totalInvestmentAmount}
+                        value={userForm.totalInvestmentAmount || ""}
                         onChange={(e) => setUserForm({ ...userForm, totalInvestmentAmount: Number(e.target.value) })}
                         className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                         required
@@ -1172,7 +1175,7 @@ const App = () => {
                         id="maturityAmount"
                         type="number"
                         placeholder=" "
-                        value={userForm.maturityAmount}
+                        value={userForm.maturityAmount || ""}
                         onChange={(e) => setUserForm({ ...userForm, maturityAmount: Number(e.target.value) })}
                         className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                         required
@@ -1369,7 +1372,7 @@ const App = () => {
                         id="monthlyAmount"
                         type="number"
                         placeholder=" "
-                        value={userForm.monthlyAmount}
+                        value={userForm.monthlyAmount || ""}
                         onChange={(e) => setUserForm({ ...userForm, monthlyAmount: Number(e.target.value) })}
                         className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                         required
@@ -1384,7 +1387,7 @@ const App = () => {
                         id="totalInvestmentAmount"
                         type="number"
                         placeholder=" "
-                        value={userForm.totalInvestmentAmount}
+                        value={userForm.totalInvestmentAmount || ""}
                         onChange={(e) => setUserForm({ ...userForm, totalInvestmentAmount: Number(e.target.value) })}
                         className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                         required
@@ -1416,7 +1419,7 @@ const App = () => {
                         id="maturityAmount"
                         type="number"
                         placeholder=" "
-                        value={userForm.maturityAmount}
+                        value={userForm.maturityAmount || ""}
                         onChange={(e) => setUserForm({ ...userForm, maturityAmount: Number(e.target.value) })}
                         className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                         required
@@ -1498,7 +1501,7 @@ const App = () => {
                       id="installmentAmount"
                       type="number"
                       placeholder=" "
-                      value={installmentForm.amount}
+                      value={installmentForm.amount || ""}
                       onChange={(e) => setInstallmentForm({ ...installmentForm, amount: Number(e.target.value) })}
                       className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                       required
