@@ -9,6 +9,7 @@ const { format } = require('date-fns');
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.json());
 
 // Connect to MongoDB
 mongoose.connect('mongodb+srv://pritgandhi0902:prit1011@trackerapp.qrco0zf.mongodb.net/?retryWrites=true&w=majority&appName=trackerapp')
@@ -30,6 +31,7 @@ const userSchema = new mongoose.Schema({
   totalInvestmentAmount: { type: Number, required: true },
   leftInvestmentAmount: { type: Number, required: true },
   maturityAmount: { type: Number, required: true },
+  accountType: { type: String}, // ✅ New field
   accountOpenDate: { type: String, required: true },
   accountCloseDate: { type: String, required: true },
 });
@@ -53,7 +55,9 @@ app.get('/', (req, res) => res.send('Investment App API is running ✅'));
 // Create new user
 app.post('/api/users', async (req, res) => {
   try {
+    console.log("📥 Incoming Data:", req.body);
     const user = new User(req.body);
+     
     await user.save();
     res.status(201).json(user);
   } catch (err) {

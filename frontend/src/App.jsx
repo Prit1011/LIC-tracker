@@ -21,7 +21,7 @@ import InstallBtn from './components/InstallBtn';
 
 
 // Base URL for your API
-const API_URL = 'https://lic-tracker.onrender.com/api';
+const API_URL = ' http://localhost:5000/api';
 
 // Main App Component
 const App = () => {
@@ -52,6 +52,7 @@ const App = () => {
     mobileNumber: '',
     nomineeName: '',
     monthlyAmount: '',
+    accountType: 'After 15 days',
     totalInvestmentAmount: '',
     leftInvestmentAmount: '',
     maturityAmount: ' ',
@@ -133,9 +134,11 @@ const App = () => {
   const createUser = async () => {
     setLoading(true);
     try {
+      console.log(userForm)
       // Convert date strings to ISO format for backend
       const payload = {
         ...userForm,
+        accountType: userForm.accountType || 'After 15 days', // ✅ ensure always present
         accountOpenDate: new Date(userForm.accountOpenDate).toISOString(),
         accountCloseDate: new Date(userForm.accountCloseDate).toISOString(),
       };
@@ -856,6 +859,10 @@ const App = () => {
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
+                      <p className="text-xs text-gray-500">Account Type</p>
+                      <p className="text-gray-800">{selectedUser.accountType}</p>
+                    </div>
+                    <div>
                       <p className="text-xs text-gray-500">Opened</p>
                       <p className="text-gray-800">{format(parseISO(selectedUser.accountOpenDate), 'dd/MM/yyyy')}</p>
                     </div>
@@ -1099,18 +1106,20 @@ const App = () => {
                     </div>
                   </div>
                   <div className="relative">
-                    <label htmlFor="leftInvestmentAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Left Investment Amount</label>
+                    <label htmlFor="accountType" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">
+                      Account Type
+                    </label>
                     <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
-                      <DollarSign className="absolute left-3 text-gray-400 h-5 w-5" />
-                      <input
-                        id="leftInvestmentAmount"
-                        type="number"
-                        placeholder=" "
-                        value={userForm.leftInvestmentAmount}
-                        onChange={(e) => setUserForm({ ...userForm, leftInvestmentAmount: Number(e.target.value) })}
-                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+                      <select
+                        id="accountType"
+                        value={userForm.accountType}
+                        onChange={(e) => setUserForm({ ...userForm, accountType: e.target.value })}
+                        className="w-full p-3 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                         required
-                      />
+                      >
+                        <option value="After 15 days">After 15 days</option>
+                        <option value="Before 15 days">Before 15 days</option>
+                      </select>
                     </div>
                   </div>
                   <div className="relative">
