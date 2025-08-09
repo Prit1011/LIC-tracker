@@ -71,6 +71,8 @@ const App = () => {
   const [showEditUserModel, setShowEditUserModel] = useState(false);
   const [userFilter, setUserFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [progress, setProgress] = useState(100); // progress bar %
+
 
 
   // --- API Calls ---
@@ -213,15 +215,31 @@ const App = () => {
    */
   const showSnackbar = (message, severity) => {
     setSnackbar({ open: true, message, severity });
+    setProgress(100); // reset progress bar
+
+    let duration = 3000; // auto close after 3 seconds
+    let intervalTime = 30; // ms for progress updates
+    let step = (100 / (duration / intervalTime));
+
+    // Animate progress bar
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev <= 0) {
+          clearInterval(interval);
+          setSnackbar((prevSnackbar) => ({ ...prevSnackbar, open: false }));
+          return 0;
+        }
+        return prev - step;
+      });
+    }, intervalTime);
   };
 
   /**
    * Closes the currently open snackbar notification.
    */
   const handleSnackbarClose = () => {
-    setSnackbar({ ...snackbar, open: false });
+    setSnackbar((prev) => ({ ...prev, open: false }));
   };
-
   /**
    * Resets the user creation form to its initial empty state.
    */
@@ -426,7 +444,7 @@ const App = () => {
       return;
     }
 
-    setIsLoading(true);
+    setLoading(true);
     try {
       const response = await axios.put(
         `${API_URL}/users/${userForm.userId}`,
@@ -454,7 +472,7 @@ const App = () => {
         error.response?.data?.error || 'Failed to update user';
       showSnackbar(errorMessage, 'error');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -1629,17 +1647,73 @@ const App = () => {
             </div>
           </div>
         )}
-        {/* Snackbar for notifications */}
+        {/* Enhanced Snackbar for notifications */}
         {snackbar.open && (
-          <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg text-white transition-all duration-300 ${snackbar.severity === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
-            {snackbar.message}
-            <button onClick={handleSnackbarClose} className="ml-4 font-bold focus:outline-none">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+          <div
+            className={`fixed bottom-6 right-6 w-80 rounded-xl shadow-lg text-white
+      bg-gradient-to-br ${snackbar.severity === 'success' ?
+                'from-emerald-500 to-emerald-600' :
+                'from-rose-500 to-rose-600'}
+      transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+      overflow-hidden border border-white/10
+      animate-[slideIn_0.3s_ease-out_forwards]`}
+            style={{
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            <div className="flex items-start p-4">
+              {/* Icon based on severity */}
+              <div className="mr-3 mt-0.5 flex-shrink-0">
+                {snackbar.severity === 'success' ? (
+                  <svg className="h-6 w-6 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="h-6 w-6 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <p className="text-sm font-medium leading-tight text-white/95">
+                  {snackbar.message}
+                </p>
+              </div>
+
+              <button
+                onClick={handleSnackbarClose}
+                className="ml-2 -mt-1 -mr-1 p-1 rounded-full transition-colors duration-150
+          hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50"
+                aria-label="Close snackbar"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-white/80 hover:text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Enhanced Progress Bar */}
+            <div className="h-1 bg-black/10">
+              <div
+                className="h-1 bg-white/80 transition-all duration-100 ease-linear"
+                style={{
+                  width: `${progress}%`,
+                  boxShadow: '0 2px 4px rgba(255,255,255,0.2)'
+                }}
+              />
+            </div>
           </div>
         )}
+
+
       </div>
       <InstallBtn />
     </div>
