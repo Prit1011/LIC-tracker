@@ -126,11 +126,11 @@ app.get('/api/installments/download', async (req, res) => {
       { header: 'First Name', key: 'firstName', width: 15 },
       { header: 'Second Name', key: 'secondName', width: 15 },
       { header: 'Monthly Amount', key: 'monthlyAmount', width: 15 },
-      { header: 'Installment Month', key: 'month', width: 15 },
-      { header: 'Installment Year', key: 'year', width: 15 },
       { header: 'Installment Amount', key: 'installmentAmount', width: 20 },
       { header: 'Payment Status', key: 'paymentStatus', width: 18 },
       { header: 'Last Updated', key: 'lastUpdated', width: 20 },
+       { header: 'Installment Month', key: 'month', width: 15 },
+      { header: 'Installment Year', key: 'year', width: 15 },
     ];
 
     // Style the header row
@@ -158,11 +158,11 @@ app.get('/api/installments/download', async (req, res) => {
         firstName: user.firstName || '',
         secondName: user.secondName || '',
         monthlyAmount: user.monthlyAmount || 0,
-        month: installment.month,
-        year: installment.year,
         installmentAmount: installment.amount || 0,
         paymentStatus: installment.paid ? 'Paid' : 'Pending',
-        lastUpdated: installment.updatedAt ? new Date(installment.updatedAt).toLocaleString() : ''
+        lastUpdated: installment.updatedAt ? new Date(installment.updatedAt).toLocaleString() : '',
+        month: installment.month,
+        year: installment.year,
       });
 
       // Style data rows
@@ -175,7 +175,7 @@ app.get('/api/installments/download', async (req, res) => {
         };
 
         // Color coding for payment status
-        if (cellNumber === 8) { // Payment Status column
+        if (cellNumber === 6) { // Payment Status column
           if (installment.paid) {
             cell.font = { color: { argb: '00AA00' }, bold: true };
           } else {
@@ -337,17 +337,24 @@ app.get('/api/installments/:userId', async (req, res) => {
 // Update an installment by ID
 app.put('/api/installments/:id', async (req, res) => {
   try {
+    const updateData = { ...req.body };
+    if (updateData.amount === "" || updateData.amount == null) {
+      updateData.amount = 0; // Default to 0 if empty
+    }
+
     const installment = await Installment.findByIdAndUpdate(
       req.params.id,
-      { $set: req.body },
+      { $set: updateData },
       { new: true }
     );
+
     if (!installment) return res.status(404).json({ error: 'Installment not found' });
     res.json(installment);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 

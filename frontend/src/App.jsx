@@ -193,22 +193,35 @@ const App = () => {
    * Updates an existing installment by sending `installmentForm` data to the backend API.
    * Refreshes the installments list for the current user after successful update.
    */
-  const updateInstallment = async () => {
-    if (!installmentForm) return; // Prevent action if no installment is selected
+const updateInstallment = async () => {
+  if (!installmentForm) return; // Prevent action if no installment is selected
 
-    setLoading(true);
-    try {
-      await axios.put(`${API_URL}/installments/${installmentForm._id}`, installmentForm);
-      await fetchInstallments(selectedUser._id); // Refresh installments for the current user
-      setShowEditInstallmentModal(false);
-      showSnackbar('Installment updated successfully', 'success');
-    } catch (error) {
-      console.error('Error updating installment:', error);
-      showSnackbar('Failed to update installment', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    // Ensure amount is always a number, defaulting to 0
+    const dataToSend = {
+      ...installmentForm,
+      amount:
+        installmentForm.amount === "" ||
+        installmentForm.amount === null ||
+        installmentForm.amount === undefined
+          ? 0
+          : Number(installmentForm.amount)
+    };
+
+    await axios.put(`${API_URL}/installments/${installmentForm._id}`, dataToSend);
+
+    await fetchInstallments(selectedUser._id); // Refresh installments for the current user
+    setShowEditInstallmentModal(false);
+    showSnackbar("Installment updated successfully", "success");
+  } catch (error) {
+    console.error("Error updating installment:", error);
+    showSnackbar("Failed to update installment", "error");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // --- Helper Functions ---
 
@@ -1550,15 +1563,25 @@ const App = () => {
                   <label htmlFor="installmentAmount" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Amount</label>
                   <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
                     <DollarSign className="absolute left-3 text-gray-400 h-5 w-5" />
-                    <input
-                      id="installmentAmount"
-                      type="number"
-                      placeholder=" "
-                      value={installmentForm.amount || ""}
-                      onChange={(e) => setInstallmentForm({ ...installmentForm, amount: Number(e.target.value) })}
-                      className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
-                      required
-                    />
+<input
+  id="installmentAmount"
+  type="number"
+  placeholder="0"
+  value={
+    installmentForm.amount === null || installmentForm.amount === undefined
+      ? ""
+      : installmentForm.amount
+  }
+  onChange={(e) => {
+    const val = e.target.value;
+    setInstallmentForm({
+      ...installmentForm,
+      amount: val === "" ? null : Number(val) // store null only if empty
+    });
+  }}
+  className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
+/>
+
                   </div>
                 </div>
                 <div className="mb-6 relative">
