@@ -16,7 +16,9 @@ import {
   UserPen,
   UserRoundPen,
   UserRoundX,
-  Snowflake
+  Snowflake,
+  X,
+  Trash2
 } from 'lucide-react'; // Importing icons
 import InstallBtn from './components/InstallBtn';
 import "./index.css"
@@ -72,6 +74,8 @@ const App = () => {
   const [userFilter, setUserFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [progress, setProgress] = useState(100); // progress bar %
+  // Inside your component
+  const [deleteData, setDeleteData] = useState({ isOpen: false, userId: null, firstName: "" });
 
 
 
@@ -476,28 +480,38 @@ const App = () => {
     }
   };
 
-  // DELETE USER HANDLER
-  const handleDeleteUser = async (event, userId, firstName) => {
-    // Stop click from reaching parent onClick
+  // Open modal
+  const handleDeleteClick = (event, userId, firstName) => {
     event.stopPropagation();
+    setDeleteData({ isOpen: true, userId, firstName });
+  };
 
-    const isConfirmed = window.confirm(`Are you sure you want to delete user "${firstName}"?`);
-    if (!isConfirmed) return;
-
-    try {
-      console.log(`🗑 Deleting user with ID: ${userId} (${firstName})`);
-      const response = await axios.delete(`${API_URL}/users/${userId}`);
-      console.log("✅ Delete Response:", response.data);
-
-      showSnackbar(response.data.message || "User deleted successfully", "success");
-      setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
-
-    } catch (error) {
-      console.error("❌ Error deleting user:", error);
-      showSnackbar(error.response?.data?.error || "Failed to delete user", "error");
+  // Close modal
+  const closeModal = () => {
+    if (!loading) { // prevent closing while loading
+      setDeleteData({ isOpen: false, userId: null, firstName: "" });
     }
   };
 
+  // Confirm delete
+  const confirmDelete = async () => {
+    setLoading(true);
+    try {
+      console.log(`🗑 Deleting user with ID: ${deleteData.userId} (${deleteData.firstName})`);
+      const response = await axios.delete(`${API_URL}/users/${deleteData.userId}`);
+      console.log("✅ Delete Response:", response.data);
+
+      showSnackbar(response.data.message || "User deleted successfully", "success");
+      setUsers(prevUsers => prevUsers.filter(user => user._id !== deleteData.userId));
+
+      setLoading(false);
+      closeModal();
+    } catch (error) {
+      console.error("❌ Error deleting user:", error);
+      showSnackbar(error.response?.data?.error || "Failed to delete user", "error");
+      setLoading(false);
+    }
+  };
 
   return (
     // Main container with gradient background and responsive padding
@@ -692,7 +706,7 @@ const App = () => {
                                   <UserRoundPen />
                                 </button>
                                 <button
-                                  onClick={(e) => handleDeleteUser(e, user._id, user.firstName)}
+                                  onClick={(e) => handleDeleteClick(e, user._id, user.firstName)}
                                   className="bg-red-600 hover:bg-red-400 text-white px-3 py-1 rounded-lg text-sm shadow-sm"
                                 >
                                   <UserRoundX />
@@ -778,7 +792,7 @@ const App = () => {
                                 <UserRoundPen />
                               </button>
                               <button
-                                onClick={(e) => handleDeleteUser(e, user._id, user.firstName)}
+                                onClick={(e) => handleDeleteClick(e, user._id, user.firstName)}
                                 className="bg-red-600 hover:bg-red-400 text-white px-3 py-1 rounded-lg text-sm shadow-sm"
                               >
                                 <UserRoundX />
@@ -1712,6 +1726,50 @@ const App = () => {
             </div>
           </div>
         )}
+
+        {deleteData.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full relative">
+              {/* Close Button */}
+              <button
+                onClick={closeModal}
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                disabled={loading}
+              >
+                <X size={20} />
+              </button>
+
+              {/* Modal Content */}
+              <div className="flex flex-col items-center text-center">
+                <Trash2 className="text-red-500 mb-3" size={40} />
+                <h2 className="text-lg font-semibold">Delete User?</h2>
+                <p className="text-gray-600 mt-1">
+                  Are you sure you want to delete <strong>{deleteData.firstName}</strong>?
+                </p>
+
+                {/* Buttons */}
+                <div className="mt-5 flex gap-3">
+                  <button
+                    onClick={closeModal}
+                    disabled={loading}
+                    className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    disabled={loading}
+                    className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {loading && <Loader2 className="animate-spin" size={18} />}
+                    {loading ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
 
 
       </div>
