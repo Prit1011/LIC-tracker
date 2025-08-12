@@ -55,7 +55,7 @@ app.get('/', (req, res) => res.send('Investment App API is running ✅'));
 // Create new user
 app.post('/api/users', async (req, res) => {
   try {
-    console.log("📥 Incoming Data:", req.body);
+    // console.log("📥 Incoming Data:", req.body);
     const user = new User(req.body);
      
     await user.save();
@@ -72,10 +72,10 @@ app.get('/api/users', async (req, res) => {
     let query = {};
 
     // Apply filter
-    if (filter === "After 15 days") {
-      query.accountType = "After 15 days";
-    } else if (filter === "Before 15 days") {
-      query.accountType = "Before 15 days";
+    if (filter === "Second Slot") {
+      query.accountType = "Second Slot";
+    } else if (filter === "First Slot") {
+      query.accountType = "First Slot";
     }
 
     // Apply search by name (first or second)

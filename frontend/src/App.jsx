@@ -56,7 +56,7 @@ const App = () => {
     mobileNumber: '',
     nomineeName: '',
     monthlyAmount: '',
-    accountType: 'After 15 days',
+    accountType: 'First Slot',
     totalInvestmentAmount: '',
     leftInvestmentAmount: '',
     maturityAmount: ' ',
@@ -170,7 +170,7 @@ const App = () => {
         monthlyAmount: Number(userForm.monthlyAmount),
         totalInvestmentAmount: Number(userForm.totalInvestmentAmount),
         maturityAmount: Number(userForm.maturityAmount),
-        accountType: userForm.accountType || 'After 15 days', // ✅ ensure always present
+        accountType: userForm.accountType || 'First Slot', // ✅ ensure always present
         accountOpenDate: new Date(userForm.accountOpenDate).toISOString(),
         accountCloseDate: new Date(userForm.accountCloseDate).toISOString(),
       };
@@ -448,7 +448,7 @@ const App = () => {
       totalInvestmentAmount: user.totalInvestmentAmount || "",
       leftInvestmentAmount: user.leftInvestmentAmount || 0,
       maturityAmount: user.maturityAmount || "",
-      accountType: user.accountType || 'After 15 days', // ✅ FIX here
+      accountType: user.accountType || 'First Slot', // ✅ FIX here
       accountOpenDate: user.accountOpenDate
         ? new Date(user.accountOpenDate).toISOString().split("T")[0]
         : "",
@@ -579,8 +579,8 @@ const App = () => {
                   className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
                   <option value="all">All Users</option>
-                  <option value="After 15 days">After 15 Days</option>
-                  <option value="Before 15 days">Before 15 Days</option>
+                  <option value="First Slot">First Slot</option>
+                  <option value="Second Slot">Second Slot</option>
                 </select>
               </div>
               <input
@@ -1234,8 +1234,8 @@ const App = () => {
                         className="w-full p-3 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                         required
                       >
-                        <option value="After 15 days">After 15 days</option>
-                        <option value="Before 15 days">Before 15 days</option>
+                        <option value="First Slot">First Slot</option>
+                        <option value="Second Slot">Second Slot</option>
                       </select>
                     </div>
                   </div>
@@ -1478,8 +1478,8 @@ const App = () => {
                         className="w-full p-3 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
                         required
                       >
-                        <option value="After 15 days">After 15 days</option>
-                        <option value="Before 15 days">Before 15 days</option>
+                         <option value="First Slot">First Slot</option>
+                        <option value="Second Slot">Second Slot</option>
                       </select>
                     </div>
                   </div>
