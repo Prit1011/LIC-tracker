@@ -25,7 +25,7 @@ import "./index.css"
 
 
 // Base URL for your API
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://lic-tracker.onrender.com/api';
 
 // Main App Component
 const App = () => {
