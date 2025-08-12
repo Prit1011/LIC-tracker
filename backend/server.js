@@ -86,7 +86,42 @@ app.get('/api/users', async (req, res) => {
       ];
     }
 
-    const users = await User.find(query);
+    // Fetch users and join installment data
+    const users = await User.aggregate([
+      { $match: query },
+      {
+        $lookup: {
+          from: 'installments', // collection name for installments
+          localField: '_id',
+          foreignField: 'userId',
+          as: 'installments'
+        }
+      },
+      {
+        $addFields: {
+          paidInstallments: {
+            $filter: {
+              input: "$installments",
+              as: "inst",
+              cond: { $eq: ["$$inst.paid", true] }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          paidInstallmentCount: { $size: "$paidInstallments" },
+          paidInstallmentAmount: { $sum: "$paidInstallments.amount" }
+        }
+      },
+      {
+        $project: {
+          installments: 0,         // Hide raw installment list
+          paidInstallments: 0      // Hide filtered installment array
+        }
+      }
+    ]);
+
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -285,9 +320,12 @@ app.post('/api/installments/generate/:userId', async (req, res) => {
     const startDate = new Date(user.accountOpenDate);
     const endDate = new Date(user.accountCloseDate);
 
-    const installments = [];
+    // ✅ Subtract 1 month from the end date
+    endDate.setMonth(endDate.getMonth() - 1);
 
+    const installments = [];
     let currentDate = new Date(startDate);
+
     while (currentDate <= endDate) {
       const month = currentDate.toLocaleString('default', { month: 'short' });
       const year = currentDate.getFullYear();
@@ -324,6 +362,7 @@ app.post('/api/installments/generate/:userId', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Get all installments for a user
 app.get('/api/installments/:userId', async (req, res) => {
