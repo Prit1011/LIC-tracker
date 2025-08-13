@@ -1498,34 +1498,7 @@ const App = () => {
                       />
                     </div>
                   </div>
-                  <div className="relative">
-                    <label htmlFor="accountOpenDate" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Open Date</label>
-                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
-                      <Calendar className="absolute left-3 text-gray-400 h-5 w-5" />
-                      <input
-                        id="accountOpenDate"
-                        type="date"
-                        value={userForm.accountOpenDate}
-                        onChange={(e) => setUserForm({ ...userForm, accountOpenDate: e.target.value })}
-                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <label htmlFor="accountCloseDate" className="absolute -top-2 left-3 text-xs text-gray-500 bg-white px-1">Account Close Date</label>
-                    <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
-                      <Calendar className="absolute left-3 text-gray-400 h-5 w-5" />
-                      <input
-                        id="accountCloseDate"
-                        type="date"
-                        value={userForm.accountCloseDate}
-                        onChange={(e) => setUserForm({ ...userForm, accountCloseDate: e.target.value })}
-                        className="w-full p-3 pl-10 bg-gray-50 rounded-lg focus:outline-none text-gray-900"
-                        required
-                      />
-                    </div>
-                  </div>
+           
                 </div>
                 <div className="flex justify-end space-x-4">
                   <button
