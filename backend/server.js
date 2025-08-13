@@ -143,56 +143,61 @@ app.get('/api/installments/download', async (req, res) => {
     const installments = await Installment.find({
       month: month,
       year: parseInt(year)
-    }).populate('userId', 'firstName secondName accountNumber1 accountNumber2 cifNumber1 cifNumber2 mobileNumber nomineeName monthlyAmount totalInvestmentAmount maturityAmount');
-
-   
+    }).populate(
+      'userId',
+      'firstName secondName accountNumber1 accountNumber2 cifNumber1 cifNumber2 mobileNumber nomineeName monthlyAmount totalInvestmentAmount maturityAmount'
+    );
 
     if (installments.length === 0) {
       return res.status(404).json({ error: 'No installments found for the specified month and year' });
     }
 
-    // Create a new workbook and worksheet
+    // Create workbook & worksheet
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(`Installments ${month} ${year}`);
 
-    // Define only the desired columns
+    // Define columns
     worksheet.columns = [
       { header: 'S.No', key: 'sno', width: 8 },
       { header: 'First Name', key: 'firstName', width: 15 },
       { header: 'Second Name', key: 'secondName', width: 15 },
-      { header: 'Monthly Amount', key: 'monthlyAmount', width: 15 },
+      { header: 'Monthly Installment', key: 'monthlyInstallment', width: 20 },
       { header: 'Installment Amount', key: 'installmentAmount', width: 20 },
       { header: 'Payment Status', key: 'paymentStatus', width: 18 },
       { header: 'Last Updated', key: 'lastUpdated', width: 20 },
-       { header: 'Installment Month', key: 'month', width: 15 },
+      { header: 'Installment Month', key: 'month', width: 15 },
       { header: 'Installment Year', key: 'year', width: 15 },
     ];
 
-    // Style the header row
+    // Style header
     worksheet.getRow(1).eachCell((cell) => {
       cell.font = { bold: true, color: { argb: 'FFFFFF' } };
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: '366092' }
-      };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '366092' } };
       cell.alignment = { vertical: 'middle', horizontal: 'center' };
       cell.border = {
-        top: { style: 'thin' },
-        left: { style: 'thin' },
-        bottom: { style: 'thin' },
-        right: { style: 'thin' }
+        top: { style: 'thin' }, left: { style: 'thin' },
+        bottom: { style: 'thin' }, right: { style: 'thin' }
       };
     });
+
+    let totalMonthlyInstallments = 0;
+    let totalPaidAmount = 0;
 
     // Add data rows
     installments.forEach((installment, index) => {
       const user = installment.userId;
+
+      // Add to totals
+      totalMonthlyInstallments += user.monthlyAmount || 0;
+      if (installment.paid) {
+        totalPaidAmount += installment.amount || 0;
+      }
+
       const row = worksheet.addRow({
         sno: index + 1,
         firstName: user.firstName || '',
         secondName: user.secondName || '',
-        monthlyAmount: user.monthlyAmount || 0,
+        monthlyInstallment: user.monthlyAmount || 0,
         installmentAmount: installment.amount || 0,
         paymentStatus: installment.paid ? 'Paid' : 'Pending',
         lastUpdated: installment.updatedAt ? new Date(installment.updatedAt).toLocaleString() : '',
@@ -200,27 +205,21 @@ app.get('/api/installments/download', async (req, res) => {
         year: installment.year,
       });
 
-      // Style data rows
+      // Style each cell
       row.eachCell((cell, cellNumber) => {
         cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
+          top: { style: 'thin' }, left: { style: 'thin' },
+          bottom: { style: 'thin' }, right: { style: 'thin' }
         };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-        // Color coding for payment status
-        if (cellNumber === 6) { // Payment Status column
-          if (installment.paid) {
-            cell.font = { color: { argb: '00AA00' }, bold: true };
-          } else {
-            cell.font = { color: { argb: 'FF0000' }, bold: true };
-          }
+        // Payment Status color
+        if (cellNumber === 6) {
+          cell.font = { color: { argb: installment.paid ? '00AA00' : 'FF0000' }, bold: true };
         }
 
-        // Right align numeric columns
-        if ([4, 7].includes(cellNumber)) {
-          cell.alignment = { horizontal: 'right' };
+        // Numeric formatting for Monthly Installment & Installment Amount
+        if ([4, 5].includes(cellNumber)) {
           cell.numFmt = '#,##0.00';
         }
       });
@@ -228,18 +227,30 @@ app.get('/api/installments/download', async (req, res) => {
 
     // Add summary row
     const summaryRowIndex = installments.length + 3;
-    worksheet.mergeCells(`A${summaryRowIndex}:E${summaryRowIndex}`);
+    worksheet.mergeCells(`A${summaryRowIndex}:I${summaryRowIndex}`);
     const summaryCell = worksheet.getCell(`A${summaryRowIndex}`);
     summaryCell.value = `Total Records: ${installments.length} | Generated on: ${new Date().toLocaleString()}`;
     summaryCell.font = { bold: true, italic: true };
     summaryCell.alignment = { horizontal: 'center' };
 
-    // Set up the response headers for file download
-    const fileName = `Installments_${month}_${year}_${new Date().getTime()}.xlsx`;
+    // Add Grand Totals row
+    const grandTotalRowIndex = summaryRowIndex + 2;
+    worksheet.mergeCells(`A${grandTotalRowIndex}:C${grandTotalRowIndex}`);
+    const totalMonthlyCell = worksheet.getCell(`A${grandTotalRowIndex}`);
+    totalMonthlyCell.value = `Grand Total Monthly Installments: ${totalMonthlyInstallments}`;
+    totalMonthlyCell.font = { bold: true };
+    totalMonthlyCell.alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells(`E${grandTotalRowIndex}:G${grandTotalRowIndex}`);
+    const totalPaidCell = worksheet.getCell(`E${grandTotalRowIndex}`);
+    totalPaidCell.value = `Grand Total Paid Amount: ${totalPaidAmount}`;
+    totalPaidCell.font = { bold: true };
+    totalPaidCell.alignment = { horizontal: 'center' };
+
+    // Send file
+    const fileName = `Installments_${month}_${year}_${Date.now()}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-    // Write the workbook to the response
     await workbook.xlsx.write(res);
     res.end();
 
@@ -248,6 +259,7 @@ app.get('/api/installments/download', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 // Get user by ID
